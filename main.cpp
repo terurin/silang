@@ -8,12 +8,11 @@ int main(int argc, char **argv) {
 
     string line;
     while (std::getline(cin, line)) {
-        reader_ptr r = readers::make_string_reader(line);
+        std::string_view name = "stdin";
+        reader_ptr r = readers::make_string_reader(name, line);
         std::string s;
         auto ret = (tokens::comment).parse(r, s);
-        cout << line <<"->"<<(ret ? "true"
-                    : "false")
-                          << ":" << s<<endl;
+        cout << line << "->" << (ret ? "true" : "false") << ":" << s << endl;
 
         // if (tokens::serial("++").parse(r, s)) {
         //     cout << "tokens:" << s << endl;

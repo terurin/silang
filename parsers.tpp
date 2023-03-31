@@ -12,11 +12,13 @@ template <token_parser R, token_parser L> bool sum<R, L>::parse(reader_ptr &read
     return false;
 }
 
-template <token_parser R, token_parser L> bool meet<R, L>::parse(reader_ptr &reader, char &c) const {
-    auto reader2 = reader->clone();
-    if (!r.parse(reader2, c)) {
+template <token_parser R, token_parser L> bool meet<R, L>::parse(reader_ptr &reader, char &c) const {    
+    const position keep=reader->get_position();
+    
+    if (!r.parse(reader, c)) {
         return false;
     }
+    reader->set_position(keep);
     if (!l.parse(reader, c)) {
         return false;
     }
@@ -24,9 +26,10 @@ template <token_parser R, token_parser L> bool meet<R, L>::parse(reader_ptr &rea
 }
 
 template <token_parser P> bool invert<P>::parse(reader_ptr &reader, char &c) const {
-    auto reader2 = reader->clone();
-
-    if (p.parse(reader2, c)) {
+    
+    const position keep=reader->get_position();
+    if (p.parse(reader, c)) {
+        reader->set_position(keep);
         return false;
     }
 
@@ -96,14 +99,14 @@ template <tokens_parser R, tokens_parser L> bool chain2<R, L>::parse(reader_ptr 
 
 template <tokens_parser P> bool attempt<P>::parse(reader_ptr &reader, std::string &s) const {
     // store
-    reader_ptr reader_backup = reader->clone();
+    const auto keep= reader->get_position();
     std::string s_backup = s;
     // string
     if (parser.parse(reader, s)) {
         return true;
     }
     // restore
-    reader = reader_backup;
+    reader->set_position(keep);
     s = s_backup;
     return false;
 }
