@@ -137,5 +137,3 @@ bool comment(reader_ptr &, std::string &);
 bool variable(reader_ptr &, std::string &);
 
 } // namespace parsers
-
-#include "parsers.tpp"
