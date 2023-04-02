@@ -12,10 +12,9 @@ int main(int argc, char **argv) {
         reader_ptr reader = readers::make_string_reader(name, line);
         std::string s = "";
 
-        int x;
-        token t;
-        if (tokenize(reader, t)) {
-            cout <<t<<endl;
+        std::vector<token> ts;
+        if (tokenize_all(reader, ts)) {
+            cout <<ts<<endl;
         }else{
             cout<<"failed"<<endl;
         }

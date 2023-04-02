@@ -236,15 +236,19 @@ bool real(reader_ptr &reader, std::string &s) {
     if (!many0(digit_base(base))(reader, s)) {
         return false;
     }
-    if (!one('.')(reader, s)) {
-        return false;
-    }
-    if (!many1(digit_base(base))(reader, s)) {
-        return false;
-    }
 
-    if (!list({'e', 'E'})(reader, s)) {
-        return true;
+    if (!list(".eE")(reader, c)) {
+        return false;
+    }
+    s.push_back(c);
+    if (c == '.') {
+        if (!many1(digit_base(base))(reader, s)) {
+            return false;
+        }
+        if (!list("eE")(reader, s)) {
+            return true;
+        }
+        s.push_back(c);
     }
 
     // [-+]?
@@ -256,8 +260,6 @@ bool real(reader_ptr &reader, std::string &s) {
 
 bool eof(reader_ptr &reader, std::string &s) { return !reader->peek(); }
 bool nop(reader_ptr &reader, std::string &s) { return true; }
-
-bool boolean(reader_ptr &reader, std::string &s) { return (attempt(multi("true")) + multi("false"))(reader, s); }
 
 bool text(reader_ptr &reader, std::string &s) {
     if (one('"')(reader, s)) {
@@ -302,7 +304,6 @@ const static std::map<std::string, token_id> op_table = []() -> std::map<std::st
     // assign
     t.insert({{"=", op_assign}});
     // arith
-    t.insert({{"++", op_inc}, {"--", op_dec}});
     t.insert({{"+", op_add}, {"-", op_sub}, {"*", op_mul}, {"/", op_div}, {"%", op_mod}});
     t.insert({
         {"+=", op_assign_add},
@@ -333,15 +334,24 @@ const static std::map<std::string, token_id> op_table = []() -> std::map<std::st
     // member
     t.insert({{".", op_member}, {"->", op_arrow}, {"@", op_at}});
 
+    // type
+    t.insert({{"?", op_option}});
+
     // bracket
     t.insert({{"(", op_bracket_begin},
               {")", op_bracket_end},
+              {"()", op_bracket_empty},
               {"{", op_block_begin},
               {"}", op_block_end},
               {"[", op_index_begin},
               {"]", op_index_end},
               {";", op_line},
               {",", op_comma}});
+
+    // keyword
+    t.insert({{"bool", word_bool}, {"true", word_true}, {"false", word_false}});
+    // int,uint
+    t.insert({{"int", word_int}, {"uint", word_uint}, {"str", word_str}});
     return t;
 }();
 
@@ -417,6 +427,11 @@ bool tokenize(reader_ptr &reader, token &token) {
     std::string s;
     many0(spaces + comment)(reader, s);
 
+    // operations
+    if (tokenize_op(reader, token)) {
+        return true;
+    }
+
     // [digit]
     if (tokener(token_id::real, attempt(real))(reader, token)) {
         return true;
@@ -424,20 +439,17 @@ bool tokenize(reader_ptr &reader, token &token) {
     if (tokener(token_id::integer, attempt(integer))(reader, token)) {
         return true;
     }
+
     // "
     if (tokener(token_id::text, text)(reader, token)) {
         return true;
     }
-    
-    // operations
-    if (tokenize_op(reader, token)) {
-        return true;
-    }
+
     // [a-zA-Z_]
     if (tokener(token_id::variable, variable)(reader, token)) {
         return true;
     }
-    return true;
+    return false;
 }
 
 bool tokenize_op(reader_ptr &reader, token &t) {
@@ -458,6 +470,29 @@ bool tokenize_op(reader_ptr &reader, token &t) {
     t.text = s;
     t.pos = pos;
     return true;
+}
+
+bool tokenize_all(reader_ptr &reader, std::vector<token> &ts) {
+    token t;
+    do {
+        if (!tokenize(reader, t)) {
+            break;
+        }
+        ts.push_back(t);
+    } while (1);
+    return true;
+}
+
+std::ostream &operator<<(std::ostream &os, const std::vector<token> &ts) {
+    auto iter = ts.begin();
+    if (iter == ts.end()) {
+        return os;
+    }
+    std::cout << *iter++;
+    for (; iter != ts.end(); iter++) {
+        std::cout << std::endl << *iter;
+    }
+    return os;
 }
 
 } // namespace parsers

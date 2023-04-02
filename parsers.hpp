@@ -132,7 +132,6 @@ bool nop(reader_ptr &, std::string &);
 // atoms
 bool integer(reader_ptr &, std::string &);
 bool real(reader_ptr &, std::string &);
-bool boolean(reader_ptr &, std::string &);
 bool text(reader_ptr &, std::string &);
 bool comment(reader_ptr &, std::string &);
 bool variable(reader_ptr &, std::string &);
@@ -150,14 +149,11 @@ enum class token_id {
     // operations
     op_assign = 0x20, // =
     // arith
-    op_inc = 0x30, // ++
-    op_dec,        // --
-    op_add,        //+
+    op_add= 0x30,        //+
     op_sub,        //-
     op_mul,        //*
     op_div,        ///
     op_mod,        //%
-    // arith & assign
     op_assign_add, // +=
     op_assign_sub, // -=
     op_assign_mul, // *=
@@ -195,9 +191,13 @@ enum class token_id {
     op_member = 0x70, //.
     op_arrow,         //->
     op_at,            //@
+    // type opration
+    op_option = 0x80, //?
+
     // bracket& separator
-    op_bracket_begin = 0x80, //(
+    op_bracket_begin = 0xA0, //(
     op_bracket_end,          //)
+    op_bracket_empty,        //()
     op_block_begin,          //{
     op_block_end,            //}
     op_index_begin,          //[
@@ -205,8 +205,15 @@ enum class token_id {
     op_line,                 //;
     op_comma,                //,
 
-    // keywords
-    
+    // bool
+    word_bool = 0x100,
+    word_true,
+    word_false,
+    // types
+    word_int,
+    word_uint,
+    word_str,
+
 };
 
 std::ostream &operator<<(std::ostream &, token_id);
@@ -229,6 +236,10 @@ public:
 
 bool tokenize(reader_ptr &, token &);
 bool tokenize_op(reader_ptr &, token &);
+
+bool tokenize_all(reader_ptr& ,std::vector<token>&);
+
+std::ostream& operator <<(std::ostream& ,const std::vector<token>&);
 
 } // namespace parsers
 
