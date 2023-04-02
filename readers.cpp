@@ -10,6 +10,14 @@ const position &position::operator=(const position &p) {
     return *this;
 }
 
+bool position::operator==(const position &p) const {
+    return name == p.name && offset == p.offset && line == p.line && number == p.number;
+}
+
+bool position::operator!=(const position &p) const {
+    return name != p.name || offset != p.offset || line != p.line || number != p.number;
+}
+
 void position::next(char c) {
     offset += 1;
     if (c != '\n') {

@@ -7,16 +7,18 @@
 namespace readers {
 
 struct position final {
-    std::string_view name;
+    std::string name;
     size_t offset;
     size_t line, number;
 
-    position(std::string_view _name, size_t _offset = 0, size_t _line = 0, size_t _number = 0);
+    position(std::string_view _name = "", size_t _offset = 0, size_t _line = 0, size_t _number = 0);
     position(const position &p) = default;
     position(position &&p) = default;
     ~position() = default;
 
     const position &operator=(const position &p);
+    bool operator==(const position &p) const;
+    bool operator!=(const position &p) const;
     void next(char c);
 };
 

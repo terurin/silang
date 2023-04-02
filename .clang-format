@@ -1,0 +1,8 @@
+Language: Cpp
+BasedOnStyle: LLVM
+ColumnLimit: 120
+UseTab: Never
+IndentWidth: 4
+TabWidth: 4
+AccessModifierOffset: -4
+RequiresExpressionIndentationKind: REI_Keyword

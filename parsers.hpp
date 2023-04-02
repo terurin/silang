@@ -3,237 +3,232 @@
 #include "readers.hpp"
 #include <algorithm>
 #include <assert.h>
+#include <climits>
 #include <concepts>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <optional>
-#include <set>
 #include <string>
 #include <vector>
+
 namespace parsers {
 
 using readers::reader_ptr, readers::position;
 using std::string;
 
-template <class P>
-concept token_parser = requires(P parser, reader_ptr &reader, char &c) {
-                           { parser.parse(reader, c) } -> std::convertible_to<bool>;
-                       };
-template <class P>
-concept token_opt_parser = requires(P parser, reader_ptr &reader, std::optional<char> &c) {
-                               { parser.parse(reader, c) } -> std::convertible_to<bool>;
-                           };
-
-template <class P>
-concept tokens_parser = requires(P parser, reader_ptr &reader, std::string &s) {
-                            { parser.parse(reader, s) } -> std::convertible_to<bool>;
-                        };
-
-namespace token {
-
-class signle {
-    const char cmp;
-
-public:
-    constexpr signle(char _c) : cmp(_c) { static_assert(token_parser<signle>); }
-    bool parse(reader_ptr &, char &) const;
-};
-
-class list {
-    const std::vector<char> cmps;
-
-public:
-    list(const std::vector<char> &_cmps) : cmps(_cmps) { static_assert(token_parser<list>); }
-    list(std::initializer_list<char> _cmps) : cmps(_cmps) { static_assert(token_parser<list>); }
-    bool parse(reader_ptr &, char &) const;
-};
-
-class range {
-    const char begin, end;
-
-public:
-    constexpr range(char _begin, char _end) : begin(_begin), end(_end) { static_assert(token_parser<range>); }
-    bool parse(reader_ptr &, char &) const;
-};
+template <class P, class T = std::string>
+concept parser = std::predicate<reader_ptr &, T &>;
+template <class T = std::string> using parser_t = std::function<bool(reader_ptr &, T &)>;
 
 class satify {
-    const std::function<bool(char)> pred;
+    const std::function<bool(char)> predicate;
 
 public:
-    satify(const std::function<bool(char)> &_p) : pred(_p) {}
-    bool parse(reader_ptr &, char &) const;
+    satify(const std::function<bool(char)> &_predicate) : predicate(_predicate) {}
+    bool operator()(reader_ptr &, char &) const;
+    bool operator()(reader_ptr &, std::string &) const;
 };
 
-std::optional<int> base_number(char c);
-class digit_base {
-    const int base;
+class multi {
+    const std::string keyword;
 
 public:
-    constexpr digit_base(int _base) : base(_base) { assert(base <= 32); }
-    bool parse(reader_ptr &, char &) const;
+    multi(std::string_view sv) : keyword(sv) {}
+    bool operator()(reader_ptr &, std::string &) const;
 };
 
-template <token_parser R, token_parser L> class sum {
-    R r;
-    L l;
+class multi_list {
+    const std::vector<std::string> keywords;                                         // sort by length
+    static std::vector<std::string> keywords_sort(const std::vector<std::string> &); // only use initialize
 
 public:
-    sum(const R &_r, const L &_l) : r(_r), l(_l) { static_assert(token_parser<sum>); }
-    bool parse(reader_ptr &reader, char &c) const;
+    multi_list(const std::vector<std::string> &_keywords) : keywords(keywords_sort(_keywords)) {}
+    bool operator()(reader_ptr &, std::string &) const;
 };
 
-template <token_parser R, token_parser L> token::sum<R, L> operator||(const R &r, const L &l) {
-    return token::sum<R, L>(r, l);
+class chain {
+    const parser_t<std::string> right;
+    const parser_t<std::string> left;
+
+public:
+    chain(const parser_t<std::string> &_right, const parser_t<std::string> &_left) : right(_right), left(_left) {}
+    bool operator()(reader_ptr &, std::string &) const;
+};
+
+static inline chain operator*(const parser_t<std::string> &r, const parser_t<std::string> &l) { return chain(r, l); }
+
+class repeat_range {
+    const parser_t<std::string> parser;
+    const unsigned int min, max;
+
+public:
+    repeat_range(const parser_t<std::string> &_parser, unsigned int _min = 0, unsigned int _max = UINT_MAX);
+    bool operator()(reader_ptr &, std::string &) const;
+};
+
+static inline repeat_range many0(const parser_t<std::string> &parser) { return repeat_range(parser, 0); }
+static inline repeat_range many1(const parser_t<std::string> &parser) { return repeat_range(parser, 1); }
+static inline repeat_range option(const parser_t<std::string> &parser) { return repeat_range(parser, 0, 1); }
+
+static inline repeat_range repeat(const parser_t<std::string> &parser, unsigned int n) {
+    return repeat_range(parser, n, n);
 }
 
-template <token_parser R, token_parser L> class meet {
-    R r;
-    L l;
+class attempt {
+    const parser_t<std::string> parser;
 
 public:
-    meet(const R &_r, const L &_l) : r(_r), l(_l) {}
-    bool parse(reader_ptr &reader, char &c) const;
+    attempt(const parser_t<std::string> &_parser) : parser(_parser) {}
+    bool operator()(reader_ptr &, std::string &) const;
 };
 
-template <token_parser R, token_parser L> token::meet<R, L> operator&&(const R &r, const L &l) {
-    return token::meet<R, L>(r, l);
-}
-
-template <token_parser P> class invert {
-    P p;
+class sum {
+    const parser_t<std::string> right;
+    const parser_t<std::string> left;
 
 public:
-    invert(const P &_p) : p(_p) {}
-    bool parse(reader_ptr &reader, char &c) const;
+    sum(const parser_t<std::string> &_right, const parser_t<std::string> &_left) : right(_right), left(_left) {}
+    bool operator()(reader_ptr &, std::string &) const;
 };
 
-template <token_parser P> token::invert<P> operator!(const P &p) { return token::invert<P>(p); }
+static inline sum operator+(const parser_t<std::string> &r, const parser_t<std::string> &l) { return sum(r, l); }
 
-const inline auto sign = list({'+', '-'});
+// token series
+
+satify one(char token);
+satify range(char begin, char end);
+satify list(std::initializer_list<char> list);
+satify list(std::string_view items);
+
+const inline satify any([](char _) { return true; });
+const inline satify none([](char _) { return false; });
+
+// 整数関係
+satify digit_base(unsigned int base = 10);
+const inline satify sign = list({'+', '-'});
+const inline satify base_list = list({'b', 'q', 'o', 'd', 'x'});
+std::optional<unsigned int> base_number(char c);
+const inline satify digit_bin = digit_base(2);
+const inline satify digit_quad = digit_base(4);
+const inline satify digit_dec = digit_base(10);
+const inline satify digit = digit_dec;
+const inline satify digit_hex = digit_base(16);
+// アルファベット
+const inline satify small = range('a', 'z');
+const inline satify large = range('A', 'Z');
+const inline auto alpha = small + large;
+const inline auto alnum = small + large + digit;
+
+// 空白
 const inline auto newline = list({'\n', '\r'});
-const inline auto bin = range('0', '1' + 1);
-const inline auto oct = range('0', '7' + 1);
-const inline auto digit = range('0', '9' + 1);
-const inline auto hex = digit || range('a', 'f' + 1) || range('A', 'F' + 1);
-const inline auto alpha = range('a', 'z' + 1) || range('A', 'Z' + 1);
-const inline auto alnum = sum(digit, alpha);
 const inline auto space = list({' ', '\t', '\n', '\r'});
-const inline auto base = list({'b', 'q', 'o', 'd', 'x'});
-const inline auto any = satify([](char c) { return true; });
+const inline auto spaces = many1(space);
 
-template <token_parser P> class opt {
-    P parser;
+// 特殊
+bool eof(reader_ptr &, std::string &);
+bool nop(reader_ptr &, std::string &);
 
-public:
-    opt(const P &_parser) : parser(_parser) {}
-    bool parse(reader_ptr &reader, std::optional<char> &c) const;
+// atoms
+bool integer(reader_ptr &, std::string &);
+bool real(reader_ptr &, std::string &);
+bool boolean(reader_ptr &, std::string &);
+bool text(reader_ptr &, std::string &);
+bool comment(reader_ptr &, std::string &);
+bool variable(reader_ptr &, std::string &);
+bool operations(reader_ptr &, std::string &);
+
+// tokens
+enum class token_id {
+    none = 0,
+    // literal
+    boolean = 0x10,
+    integer,
+    real,
+    text,
+    variable,
+    // operations
+    op_assign = 0x20, // =
+    // arith
+    op_inc = 0x30, // ++
+    op_dec,        // --
+    op_add,        //+
+    op_sub,        //-
+    op_mul,        //*
+    op_div,        ///
+    op_mod,        //%
+    // arith & assign
+    op_assign_add, // +=
+    op_assign_sub, // -=
+    op_assign_mul, // *=
+    op_assign_div, // /=
+    op_assign_mod, // %=
+    // compare
+    op_eq = 0x40, //==
+    op_ne,        //!=
+    op_gt,        // >
+    op_ge,        //>=
+    op_lt,        //<
+    op_le,        //<=
+    // bit logic && shift
+    op_bitnot = 0x50, //~
+    op_bitand,        //&
+    op_bitor,         //|
+    op_bitxor,        //^
+    op_rshfit,        //>>
+    op_lshfit,        //<<
+    op_assign_bitand, //&=
+    op_assign_bitor,  //|=
+    op_assign_bitxor, //^=
+    op_assign_rshfit, //>>=
+    op_assign_lshfit, //<<=
+
+    // bits
+    op_not = 0x60, //!
+    op_and,        //&&
+    op_or,         //||
+    op_xor,        //^^
+    op_assign_and, //&&=
+    op_assign_or,  //||=
+    op_assign_xor, //^^=
+    // member
+    op_member = 0x70, //.
+    op_arrow,         //->
+    op_at,            //@
+    // bracket& separator
+    op_bracket_begin = 0x80, //(
+    op_bracket_end,          //)
+    op_block_begin,          //{
+    op_block_end,            //}
+    op_index_begin,          //[
+    op_index_end,            //]
+    op_line,                 //;
+    op_comma,                //,
+
+    // keywords
+    
 };
 
-} // namespace token
-
-namespace tokens {
-
-class serial {
-    const std::string cmp;
-
-public:
-    serial(const std::string &_cmp) : cmp(_cmp) {}
-    bool parse(reader_ptr &, std::string &) const;
-};
-
-class from_function {
-    std::function<bool(reader_ptr &, std::string &)> func;
-
-public:
-    from_function(const std::function<bool(reader_ptr &, std::string &)> &_func) : func(_func) {}
-    bool parse(reader_ptr &r, std::string &s) const { return func(r, s); };
-};
-
-template <token_parser P> class from_token {
-    P parser;
-
-public:
-    from_token(const P &_parser) : parser(_parser) {}
-    bool parse(reader_ptr &, std::string &) const;
-};
-
-template <token_opt_parser P> class from_token_opt {
-    P parser;
-
-public:
-    from_token_opt(const P &_parser) : parser(_parser) {}
-    bool parse(reader_ptr &, std::string &) const;
-};
-
-template <tokens_parser P> class many0 {
-    P parser;
-
-public:
-    many0(const P &_parser) : parser(_parser) {}
-    bool parse(reader_ptr &, std::string &) const;
-};
-
-template <tokens_parser P> class many1 {
-    P parser;
-
-public:
-    many1(const P &_parser) : parser(_parser) {}
-    bool parse(reader_ptr &, std::string &) const;
-};
-
-template <tokens_parser R, tokens_parser L> class chain2 {
-    R r;
-    L l;
-
-public:
-    chain2(const R &_r, const L &_l) : r(_r), l(_l) {}
-    bool parse(reader_ptr &, std::string &) const;
-};
-
-template <tokens_parser P> class attempt {
-    P parser;
-
-public:
-    attempt(const P &_parser) : parser(_parser) {}
-    bool parse(reader_ptr &, std::string &) const;
-};
-
-template <tokens_parser R, tokens_parser L> class mixer {
-    R r;
-    L l;
-
-public:
-    mixer(const R &_r, const L &_l) : r(_r), l(_l) {}
-    bool parse(reader_ptr &, std::string &) const;
-};
-
-const inline auto spaces0 = tokens::many0(tokens::from_token(token::space));
-const inline auto spaces1 = tokens::many1(tokens::from_token(token::space));
-const inline auto digits0 = tokens::many0(tokens::from_token(token::digit));
-const inline auto digits1 = tokens::many1(tokens::from_token(token::digit));
-
-static inline auto digits0_base(unsigned int n) { return tokens::many0(tokens::from_token(token::digit_base(n))); }
-
-static inline auto digits1_base(unsigned int n) { return tokens::many1(tokens::from_token(token::digit_base(n))); }
-
-bool integer_parse(reader_ptr &, std::string &);
-bool real_parse(reader_ptr &, std::string &);
-bool variable_parse(reader_ptr &, std::string &);
-bool comment_parse(reader_ptr &, std::string &);
-const inline auto integer = tokens::from_function(integer_parse);
-const inline auto real = tokens::from_function(real_parse);
-const inline auto variable = tokens::from_function(variable_parse); 
-const inline auto comment = tokens::from_function(comment_parse);
-} // namespace tokens
-
-namespace words {
-
-enum class word_id {};
-struct word {
+std::ostream &operator<<(std::ostream &, token_id);
+struct token {
+    token_id id = token_id::none;
+    position pos;
     std::string text;
 };
 
-}; // namespace words
+std::ostream &operator<<(std::ostream &, const token &);
+
+class tokener {
+    const token_id id;
+    const parser_t<std::string> parser;
+
+public:
+    tokener(const token_id _id, parser_t<std::string> _parser) : id(_id), parser(_parser) {}
+    bool operator()(reader_ptr &, token &) const;
+};
+
+bool tokenize(reader_ptr &, token &);
+bool tokenize_op(reader_ptr &, token &);
 
 } // namespace parsers
 
