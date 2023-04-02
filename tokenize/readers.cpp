@@ -20,7 +20,7 @@ bool position::operator!=(const position &p) const {
 
 void position::next(char c) {
     offset += 1;
-    if (c != '\n') {
+    if (c != '\n' && c != '\r') {
         line += 0, number += 1;
     } else {
         line += 1, number = 0;
@@ -50,4 +50,4 @@ void string_reader::set_position(const position &p) {
     iter = begin + p.offset;
 }
 
-} // namespace readers
+} // namespace tokenize::readers
