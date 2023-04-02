@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <string>
 #include <string_view>
-namespace readers {
+namespace tokenize::readers {
 
 struct position final {
     std::string name;

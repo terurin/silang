@@ -7,7 +7,9 @@ enable_testing()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(silang main.cpp parsers.cpp readers.cpp)
+add_subdirectory(tokenize)
+add_executable(silang main.cpp)
+target_link_libraries(silang tokenize)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

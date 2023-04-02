@@ -1,6 +1,6 @@
 #include "readers.hpp"
 
-namespace readers {
+namespace tokenize::readers {
 
 position::position(std::string_view _name, size_t _offset, size_t _line, size_t _number)
     : name(_name), offset(_offset), line(_line), number(_number) {}
