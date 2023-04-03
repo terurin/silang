@@ -56,13 +56,33 @@ void multi_failed_1_test() {
     TEST_ASSERT(reader->get_position() != p);
 }
 
-// tests
+// multi_list
 void multi_list_success_0_test() {
-    auto reader = make_string_reader("demo", "hello");
-    std::string s;
-    const auto p = reader->get_position();
-    TEST_ASSERT(multi_list({"hello", "hola"})(reader, s));
-    TEST_ASSERT(reader->get_position() != p);
+    auto parser = multi_list({"hello", "hola"});
+    {
+        auto reader = make_string_reader("demo", "hola");
+        std::string s;
+        TEST_ASSERT(parser(reader, s) && s == "hola");
+    }
+    {
+        auto reader = make_string_reader("demo", "hello");
+        std::string s;
+        TEST_ASSERT(parser(reader, s) && s == "hello");
+    }
+}
+
+void multi_list_failed_0_test() {
+    auto parser = multi_list({"hello", "hola"});
+    {
+        auto reader = make_string_reader("demo", "bye");
+        std::string s;
+        TEST_ASSERT(!parser(reader, s));
+    }
+    {
+        auto reader = make_string_reader("demo", "hi world");
+        std::string s;
+        TEST_ASSERT(!parser(reader, s));
+    }
 }
 
 TEST_LIST = {
@@ -76,5 +96,6 @@ TEST_LIST = {
     {"multi_faield_1_test", multi_failed_1_test},
     // multi list
     {"multi_list_success_0_test", multi_list_success_0_test},
+    {"multi_list_failed_0_test", multi_list_failed_0_test},
     // end
     {nullptr, nullptr}};

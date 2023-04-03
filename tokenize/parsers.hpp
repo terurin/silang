@@ -10,12 +10,12 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace tokenize::parsers {
 
 using readers::reader_ptr, readers::position;
-
 
 template <class P, class T = std::string>
 concept parser = std::predicate<reader_ptr &, T &>;
@@ -39,11 +39,10 @@ public:
 };
 
 class multi_list {
-    const std::vector<std::string> keywords;                                         // sort by length
-    static std::vector<std::string> keywords_sort(const std::vector<std::string> &); // only use initialize
-
+    const std::unordered_map<std::string, bool> table; // true -> tail, false -> continue, null -> mismatch
+    
 public:
-    multi_list(const std::vector<std::string> &_keywords) : keywords(keywords_sort(_keywords)) {}
+    multi_list(const std::vector<std::string> &_keywords);
     bool operator()(reader_ptr &, std::string &) const;
 };
 
@@ -136,4 +135,4 @@ bool text(reader_ptr &, std::string &);
 bool comment(reader_ptr &, std::string &);
 bool variable(reader_ptr &, std::string &);
 
-} // namespace parsers
+} // namespace tokenize::parsers

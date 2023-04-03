@@ -38,36 +38,67 @@ bool multi::operator()(reader_ptr &reader, std::string &s) const {
     return true;
 }
 
-std::vector<std::string> multi_list::keywords_sort(const std::vector<std::string> &_keywords) {
+static inline std::unordered_map<std::string, bool> table_from_keywords(const std::vector<std::string> &keywords) {
+    std::unordered_map<std::string, bool> table;
+    // 部分文字列を書き出す
+    for (const std::string &keyword : keywords) {
+        for (size_t i = 0; i < keyword.length(); i++) {
+            table[keyword.substr(0, i)] = false;
+        }
+    }
+    // 完全一致文字列を書き出す
+    for (const std::string &keyword : keywords) {
+        table[keyword] = true;
+    }
 
-    std::vector<std::string> keywords;
-    keywords.reserve(_keywords.size());
-    std::copy(_keywords.begin(), _keywords.end(), std::back_inserter(keywords));
-    std::sort(keywords.begin(), keywords.end(),
-              [](const std::string &a, const std::string &b) { return a.length() > b.length(); });
-    return keywords;
+    return table;
 }
+
+multi_list::multi_list(const std::vector<std::string> &_keywords) : table(table_from_keywords(_keywords)) {}
 
 bool multi_list::operator()(reader_ptr &reader, std::string &s) const {
 
-    // store
-    const position keep_pos = reader->get_position();
-    std::string keep_s = s;
+    bool is_rollbackable = false;
+    std::string rollback_string;
+    position rollback_position;
 
-    // match
-    for (const auto keyword : keywords) {
-        for (const char c : keyword) {
-            const auto peek = reader->peek();
-            if (!peek || *peek != c) {
-                goto next;
+    std::string match;
+    do {
+        bool is_failed;
+        do {
+            auto peek = reader->peek();
+            if (!peek) {
+                is_failed = true;
+                break;
             }
-            reader->next(), s.push_back(*peek);
+            match.push_back(*peek);
+
+            auto iter = table.find(match);
+            if (iter == table.end()) {
+                is_failed = true;
+                break;
+            }
+
+            reader->next();
+            if (iter->second) {
+                // save as rollback
+                is_rollbackable = true;
+                rollback_position = reader->get_position();
+                rollback_string = match;
+            }
+            is_failed = false;
+        } while (0);
+
+        if (is_failed) {
+            if (!is_rollbackable) {
+                return false;
+            }
+            reader->set_position(rollback_position);
+            s = rollback_string;
+            return true;
         }
-        return true;
-    next:
-        reader->set_position(keep_pos);
-        s = keep_s;
-    }
+
+    } while (1);
 
     return false;
 }
@@ -297,5 +328,4 @@ bool variable(reader_ptr &reader, std::string &s) {
     return many0(alnum + one('_'))(reader, s);
 }
 
-
-} // namespace parsers
+} // namespace tokenize::parsers
