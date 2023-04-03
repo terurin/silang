@@ -8,3 +8,6 @@ add_library(tokenize STATIC
 
 add_executable(tokenize_readers_tests readers.cpp readers_test.cpp)
 add_test(NAME readers_tests COMMAND tokenize_readers_tests)
+
+add_executable(tokenize_parsers_tests readers.cpp parsers.cpp parsers_test.cpp)
+add_test(NAME parsers_tests COMMAND tokenize_parsers_tests)

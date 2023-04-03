@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 namespace tokenize::parsers {
+
 bool satify::operator()(reader_ptr &reader, char &c) const {
     const auto peek = reader->peek();
     if (!peek || !predicate(*peek)) {
