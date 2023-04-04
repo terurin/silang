@@ -85,7 +85,32 @@ void multi_list_failed_0_test() {
     }
 }
 
-// charactor
+// variable
+void variable_success_alpha_test() {
+    auto reader = make_string_reader("demo", "hello");
+    {
+        std::string s;
+        TEST_ASSERT(variable(reader, s) && s == "hello");
+    }
+}
+
+void variable_success_alnum_test() {
+    auto reader = make_string_reader("demo", "abc123");
+    {
+        std::string s;
+        TEST_ASSERT(variable(reader, s) && s == "abc123");
+    }
+}
+
+void variable_failed_number_test() {
+    auto reader = make_string_reader("demo", "1");
+    {
+        std::string s;
+        TEST_ASSERT(!variable(reader, s));
+    }
+}
+
+// character
 void character_success_alpha_test() {
     auto reader = make_string_reader("demo", "'a'");
     {
@@ -130,6 +155,10 @@ TEST_LIST = {
     // multi list
     {"multi_list_success_0_test", multi_list_success_0_test},
     {"multi_list_failed_0_test", multi_list_failed_0_test},
+    // variable
+    {"variable_success_alpha_test", variable_success_alpha_test},
+    {"variable_success_alnum_test", variable_success_alnum_test},
+    {"variable_failed_number_test", variable_failed_number_test},
     // charactor
     {"character_success_alpha_test", character_success_alpha_test},
     {"character_success_newline_test", character_success_newline_test},
