@@ -305,7 +305,7 @@ bool text(reader_ptr &reader, std::string &s) {
 
 bool comment(reader_ptr &reader, std::string &s) {
     if (attempt(multi("//"))(reader, s)) {
-        if (many0(satify([](char c) { return c != '\n' && c != '\n'; }))(reader, s)) {
+        if (!many0(satify([](char c) { return c != '\n' && c != '\r'; }))(reader, s)) {
             return false;
         };
         return (newline + eof)(reader, s);

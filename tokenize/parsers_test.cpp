@@ -85,6 +85,23 @@ void multi_list_failed_0_test() {
     }
 }
 
+// commnet
+void commnet_success_line_test() {
+    auto reader = make_string_reader("demo", "//ab\n");
+    {
+        std::string s;
+        TEST_ASSERT(comment(reader, s) && s == "//ab\n");
+    }
+}
+
+void commnet_success_block_test() {
+    auto reader = make_string_reader("demo", "/*abc*/");
+    {
+        std::string s;
+        TEST_ASSERT(comment(reader, s) && s == "/*abc*/");
+    }
+}
+
 // variable
 void variable_success_alpha_test() {
     auto reader = make_string_reader("demo", "hello");
@@ -155,6 +172,9 @@ TEST_LIST = {
     // multi list
     {"multi_list_success_0_test", multi_list_success_0_test},
     {"multi_list_failed_0_test", multi_list_failed_0_test},
+    // comment
+    {"commnet_success_line_test", commnet_success_line_test},
+    {"commnet_success_block_test", commnet_success_block_test},
     // variable
     {"variable_success_alpha_test", variable_success_alpha_test},
     {"variable_success_alnum_test", variable_success_alnum_test},
