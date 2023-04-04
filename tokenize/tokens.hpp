@@ -1,13 +1,13 @@
 #pragma once
 
-#include "readers.hpp"
 #include "parsers.hpp"
+#include "readers.hpp"
 #include <iostream>
 #include <string>
 
 namespace tokenize::tokens {
-using readers::reader_ptr,readers::position;
 using parsers::parser_t;
+using readers::reader_ptr, readers::position;
 
 // tokens
 enum class token_id {
@@ -17,6 +17,7 @@ enum class token_id {
     integer,
     real,
     text,
+    character,
     variable,
     // operations
     op_assign = 0x20, // =
@@ -84,6 +85,7 @@ enum class token_id {
     word_true,
     word_false,
     // types
+    word_char,
     word_int,
     word_uint,
     word_str,

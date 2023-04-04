@@ -57,7 +57,7 @@ const static std::map<std::string, token_id> op_table = []() -> std::map<std::st
     // keyword
     t.insert({{"bool", word_bool}, {"true", word_true}, {"false", word_false}});
     // int,uint
-    t.insert({{"int", word_int}, {"uint", word_uint}, {"str", word_str}, {"func", word_func}});
+    t.insert({{"char", word_char}, {"int", word_int}, {"uint", word_uint}, {"str", word_str}, {"func", word_func}});
     return t;
 }();
 
@@ -78,6 +78,7 @@ std::ostream &operator<<(std::ostream &os, token_id id) {
         member(real),
         member(text),
         member(variable),
+        member(character),
     };
 #undef member
     char buffer[256]; // std::formatはまだまともに使えないので
@@ -110,7 +111,7 @@ bool operation(reader_ptr &reader, token &t) {
         return ks;
     }());
 
-     std::string s;
+    std::string s;
     const auto pos = reader->get_position();
     if (!keywords(reader, s)) {
         return false;
@@ -165,7 +166,11 @@ bool tokenize(reader_ptr &reader, token &token) {
     }
 
     // "
-    if (tokener(token_id::text, text)(reader, token)) {
+    if (tokener(token_id::text, attempt(text))(reader, token)) {
+        return true;
+    }
+    // '
+    if (tokener(token_id::character, attempt(character))(reader, token)) {
         return true;
     }
 

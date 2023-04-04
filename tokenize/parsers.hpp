@@ -134,5 +134,5 @@ bool real(reader_ptr &, std::string &);
 bool text(reader_ptr &, std::string &);
 bool comment(reader_ptr &, std::string &);
 bool variable(reader_ptr &, std::string &);
-
+bool character(reader_ptr &, std::string &);
 } // namespace tokenize::parsers

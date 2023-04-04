@@ -328,4 +328,9 @@ bool variable(reader_ptr &reader, std::string &s) {
     return many0(alnum + one('_'))(reader, s);
 }
 
+bool character(reader_ptr &reader, std::string &s) {
+    // '*'
+    return (one('\'') * option(one('\\')) * any * one('\''))(reader, s);
+}
+
 } // namespace tokenize::parsers

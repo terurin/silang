@@ -85,6 +85,39 @@ void multi_list_failed_0_test() {
     }
 }
 
+// charactor
+void character_success_alpha_test() {
+    auto reader = make_string_reader("demo", "'a'");
+    {
+        std::string s;
+        TEST_ASSERT(character(reader, s) && s == "'a'");
+    }
+}
+
+void character_success_newline_test() {
+    auto reader = make_string_reader("demo", "'\n'");
+    {
+        std::string s;
+        TEST_ASSERT(character(reader, s) && s == "'\n'");
+    }
+}
+
+void character_failed_empty_test() {
+    auto reader = make_string_reader("demo", "''");
+    {
+        std::string s;
+        TEST_ASSERT(!character(reader, s));
+    }
+}
+
+void character_failed_over_test() {
+    auto reader = make_string_reader("demo", "'01'");
+    {
+        std::string s;
+        TEST_ASSERT(!character(reader, s));
+    }
+}
+
 TEST_LIST = {
     // safity
     {"satify_success_test", satify_success_test},
@@ -97,5 +130,10 @@ TEST_LIST = {
     // multi list
     {"multi_list_success_0_test", multi_list_success_0_test},
     {"multi_list_failed_0_test", multi_list_failed_0_test},
+    // charactor
+    {"character_success_alpha_test", character_success_alpha_test},
+    {"character_success_newline_test", character_success_newline_test},
+    {"character_failed_empty_test", character_failed_empty_test},
+    {"character_failed_over_test", character_failed_over_test},
     // end
     {nullptr, nullptr}};
