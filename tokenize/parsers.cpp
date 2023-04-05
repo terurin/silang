@@ -164,6 +164,19 @@ bool sum::operator()(reader_ptr &reader, std::string &s) const {
     return left(reader, s);
 }
 
+bool bracket::operator()(reader_ptr &reader, std::string &out) const {
+    if (!begin(reader, out)) {
+        return false;
+    }
+    do {
+        if (end(reader, out)) {
+            return true;
+        }
+    } while (body(reader, out));
+
+    return false;
+}
+
 satify one(char token) {
     return satify([token](char c) { return token == c; });
 }

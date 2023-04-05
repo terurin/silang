@@ -93,6 +93,17 @@ public:
 
 static inline sum operator+(const parser_t<std::string> &r, const parser_t<std::string> &l) { return sum(r, l); }
 
+class bracket {
+    const parser_t<std::string> begin;
+    const parser_t<std::string> body;
+    const parser_t<std::string> end;
+
+public:
+    bracket(const parser_t<std::string> _begin, const parser_t<std::string> _body, const parser_t<std::string> _end)
+        : begin(_begin), body(_body), end(_end) {}
+    bool operator()(reader_ptr &, std::string &) const;
+};
+
 // token series
 
 satify one(char token);
@@ -118,7 +129,7 @@ const inline satify small = range('a', 'z');
 const inline satify large = range('A', 'Z');
 const inline auto alpha = small + large;
 const inline auto alnum = small + large + digit;
-
+const inline auto escaped_char = satify([](char c) { return c != '\\'; }) + one('\\') * any;
 // 空白
 const inline auto newline = list({'\n', '\r'});
 const inline auto space = list({' ', '\t', '\n', '\r'});
@@ -131,9 +142,9 @@ bool nop(reader_ptr &, std::string &);
 // atoms
 bool integer(reader_ptr &, std::string &);
 bool real(reader_ptr &, std::string &);
-const inline auto text =
-    one('"') * many0(satify([](char c) -> bool { return c != '\\' && c != '"'; }) + one('\\') * any) * one('"');
+const inline auto text = attempt(bracket(multi("\"\"\""), escaped_char, attempt(multi("\"\"\"")))) +
+                         bracket(one('"'), escaped_char, one('"'));
 bool comment(reader_ptr &, std::string &);
 const inline auto variable = (alpha + one('_')) * many0(alnum + one('_'));
-const inline auto character = one('\'') * option(one('\\')) * any * one('\'');
+const inline auto character = one('\'') * escaped_char * one('\'');
 } // namespace tokenize::parsers
