@@ -140,7 +140,12 @@ bool eof(reader_ptr &, std::string &);
 bool nop(reader_ptr &, std::string &);
 
 // atoms
-bool integer(reader_ptr &, std::string &);
+const inline auto integer =
+    option(sign) * (attempt(multi("0b") * many1(digit_base(2)) + multi("0q") * many1(digit_base(4)) +
+                            multi("0o") * many1(digit_base(8)) + multi("0d") * many1(digit_base(10)) +
+                            multi("0x") * many1(digit_base(16))) +
+                    many1(digit_base(10)));
+
 bool real(reader_ptr &, std::string &);
 const inline auto text = attempt(bracket(multi("\"\"\""), escaped_char, attempt(multi("\"\"\"")))) +
                          bracket(one('"'), escaped_char, one('"'));

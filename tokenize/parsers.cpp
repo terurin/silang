@@ -228,28 +228,6 @@ std::optional<unsigned int> base_number(char c) {
     }
 }
 
-bool integer(reader_ptr &reader, std::string &s) {
-    // [-+]?
-    const static auto opt_sign = option(sign);
-    if (!opt_sign(reader, s)) {
-        return false;
-    }
-    // 0[base][digit]
-    char c;
-    if (one('0')(reader, c)) {
-        s.push_back(c);
-        if (base_list(reader, c)) {
-            s.push_back(c);
-            const unsigned int base = base_number(c).value();
-            return many1(digit_base(base))(reader, s);
-        } else {
-            return many0(digit_dec)(reader, s);
-        }
-    } else {
-        return many1(digit_dec)(reader, s);
-    }
-}
-
 bool real(reader_ptr &reader, std::string &s) {
     // [-+]?
     if (!option(sign)(reader, s)) {

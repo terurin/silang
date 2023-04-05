@@ -153,9 +153,12 @@ bool tokenize(reader_ptr &reader, token &token) {
     many0(spaces + comment)(reader, s);
 
     // operation
+    auto position = reader->get_position();
     if (operation(reader, token)) {
         return true;
     }
+    reader->set_position(position);
+    token.text="";
 
     // [digit]
     if (tokener(token_id::real, attempt(real))(reader, token)) {
