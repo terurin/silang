@@ -3,7 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <map>
-#include <set>
+#include <unordered_set>
 namespace tokenize::parsers {
 
 bool satify::operator()(reader_ptr &reader, char &c) const {
@@ -173,27 +173,13 @@ satify range(char begin, char end) {
 }
 
 satify list(std::initializer_list<char> _items) {
-    const std::vector<char> items(_items);
-    return satify([items](char c) -> bool {
-        for (char item : items) {
-            if (item == c) {
-                return true;
-            }
-        }
-        return false;
-    });
+    const std::unordered_set<char> items(_items);
+    return satify([items](char c) -> bool { return items.contains(c); });
 }
 
 satify list(std::string_view _items) {
-    const std::string items(_items);
-    return satify([items](char c) -> bool {
-        for (char item : items) {
-            if (item == c) {
-                return true;
-            }
-        }
-        return false;
-    });
+    const std::unordered_set<char> items(_items.begin(), _items.end());
+    return satify([items](char c) -> bool { return items.contains(c); });
 }
 
 // 整数関係
@@ -231,7 +217,8 @@ std::optional<unsigned int> base_number(char c) {
 
 bool integer(reader_ptr &reader, std::string &s) {
     // [-+]?
-    if (!option(sign)(reader, s)) {
+    const static auto opt_sign = option(sign);
+    if (!opt_sign(reader, s)) {
         return false;
     }
     // 0[base][digit]
@@ -293,44 +280,28 @@ bool real(reader_ptr &reader, std::string &s) {
 bool eof(reader_ptr &reader, std::string &s) { return !reader->peek(); }
 bool nop(reader_ptr &reader, std::string &s) { return true; }
 
-bool text(reader_ptr &reader, std::string &s) {
-    if (one('"')(reader, s)) {
-        if (!many0(satify([](char c) -> bool { return c != '"'; }))(reader, s)) {
-            return false;
-        }
-        return one('"')(reader, s);
-    }
-    return false;
-}
-
 bool comment(reader_ptr &reader, std::string &s) {
-    if (attempt(multi("//"))(reader, s)) {
-        if (!many0(satify([](char c) { return c != '\n' && c != '\r'; }))(reader, s)) {
+    // heap確保を避けるため、静的に確保しておく
+
+    const static auto line_begin = attempt(multi("//"));
+    if (line_begin(reader, s)) {
+        const static auto line_body = many0(satify([](char c) { return c != '\n' && c != '\r'; }));
+        if (!line_body(reader, s)) {
             return false;
         };
-        return (newline + eof)(reader, s);
+        const static auto line_end = newline + eof;
+        return (line_end)(reader, s);
     }
-    if (attempt(multi("/*"))(reader, s)) {
+    const static auto block_end = attempt(multi("/*"));
+    if (block_end(reader, s)) {
         do {
-            if (attempt(multi("*/"))(reader, s)) {
+            const static auto block_end = attempt(multi("*/"));
+            if (block_end(reader, s)) {
                 return true;
             }
         } while (any(reader, s));
     }
     return false;
-}
-
-bool variable(reader_ptr &reader, std::string &s) {
-    // [a-zA-Z_][0-9a-zA-Z_]*
-    if (!(alpha + one('_'))(reader, s)) {
-        return false;
-    }
-    return many0(alnum + one('_'))(reader, s);
-}
-
-bool character(reader_ptr &reader, std::string &s) {
-    // '*'
-    return (one('\'') * option(one('\\')) * any * one('\''))(reader, s);
 }
 
 } // namespace tokenize::parsers

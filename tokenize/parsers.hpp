@@ -40,7 +40,7 @@ public:
 
 class multi_list {
     const std::unordered_map<std::string, bool> table; // true -> tail, false -> continue, null -> mismatch
-    
+
 public:
     multi_list(const std::vector<std::string> &_keywords);
     bool operator()(reader_ptr &, std::string &) const;
@@ -131,8 +131,9 @@ bool nop(reader_ptr &, std::string &);
 // atoms
 bool integer(reader_ptr &, std::string &);
 bool real(reader_ptr &, std::string &);
-bool text(reader_ptr &, std::string &);
+const inline auto text =
+    one('"') * many0(satify([](char c) -> bool { return c != '\\' && c != '"'; }) + one('\\') * any) * one('"');
 bool comment(reader_ptr &, std::string &);
-bool variable(reader_ptr &, std::string &);
-bool character(reader_ptr &, std::string &);
+const inline auto variable = (alpha + one('_')) * many0(alnum + one('_'));
+const inline auto character = one('\'') * option(one('\\')) * any * one('\'');
 } // namespace tokenize::parsers
