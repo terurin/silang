@@ -271,28 +271,4 @@ bool real(reader_ptr &reader, std::string &s) {
 bool eof(reader_ptr &reader, std::string &s) { return !reader->peek(); }
 bool nop(reader_ptr &reader, std::string &s) { return true; }
 
-bool comment(reader_ptr &reader, std::string &s) {
-    // heap確保を避けるため、静的に確保しておく
-
-    const static auto line_begin = attempt(multi("//"));
-    if (line_begin(reader, s)) {
-        const static auto line_body = many0(satify([](char c) { return c != '\n' && c != '\r'; }));
-        if (!line_body(reader, s)) {
-            return false;
-        };
-        const static auto line_end = newline + eof;
-        return (line_end)(reader, s);
-    }
-    const static auto block_end = attempt(multi("/*"));
-    if (block_end(reader, s)) {
-        do {
-            const static auto block_end = attempt(multi("*/"));
-            if (block_end(reader, s)) {
-                return true;
-            }
-        } while (any(reader, s));
-    }
-    return false;
-}
-
 } // namespace tokenize::parsers

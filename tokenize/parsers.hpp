@@ -149,7 +149,9 @@ const inline auto integer =
 bool real(reader_ptr &, std::string &);
 const inline auto text = attempt(bracket(multi("\"\"\""), escaped_char, attempt(multi("\"\"\"")))) +
                          bracket(one('"'), escaped_char, one('"'));
-bool comment(reader_ptr &, std::string &);
+// bool comment(reader_ptr &, std::string &);
+const inline auto comment =
+    attempt(bracket(multi("//"), any, newline + eof)) + bracket(multi("/*"), any, attempt(multi("*/")));
 const inline auto variable = (alpha + one('_')) * many0(alnum + one('_'));
 const inline auto character = one('\'') * escaped_char * one('\'');
 } // namespace tokenize::parsers
