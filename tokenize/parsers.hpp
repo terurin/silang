@@ -124,6 +124,12 @@ const inline satify digit_quad = digit_base(4);
 const inline satify digit_dec = digit_base(10);
 const inline satify digit = digit_dec;
 const inline satify digit_hex = digit_base(16);
+const inline auto digits_bin_many1 = many1(digit_base(2));
+const inline auto digits_quad_many1 = many1(digit_base(4));
+const inline auto digits_oct_many1 = many1(digit_base(8));
+const inline auto digits_dec_many1 = many1(digit_base(10));
+const inline auto digits_hex_many1 = many1(digit_base(16));
+
 // アルファベット
 const inline satify small = range('a', 'z');
 const inline satify large = range('A', 'Z');
