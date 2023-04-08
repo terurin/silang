@@ -107,8 +107,7 @@ public:
 // token series
 
 satify one(char token);
-satify range(char begin, char end);
-satify list(std::initializer_list<char> list);
+satify range(char first, char last);
 satify list(std::string_view items);
 
 const inline satify any([](char _) { return true; });
@@ -116,8 +115,7 @@ const inline satify none([](char _) { return false; });
 
 // 整数関係
 satify digit(unsigned int base = 10);
-const inline satify sign = list({'+', '-'});
-const inline satify base_list = list({'b', 'q', 'o', 'd', 'x'});
+const inline satify sign = list("+-");
 
 // アルファベット
 const inline satify small = range('a', 'z');
@@ -126,8 +124,8 @@ const inline auto alpha = small + large;
 const inline auto alnum = small + large + digit();
 const inline auto escaped_char = satify([](char c) { return c != '\\'; }) + one('\\') * any;
 // 空白
-const inline auto newline = list({'\n', '\r'});
-const inline auto space = list({' ', '\t', '\n', '\r'});
+const inline auto newline = list("\r\n");
+const inline auto space = list(" \t\n\r");
 const inline auto spaces = many1(space);
 
 // 特殊
@@ -141,12 +139,11 @@ const inline auto integer = option(sign) * (attempt(multi("0b") * many1(digit(2)
                                             many1(digit(10)));
 
 const inline auto dot = one('.');
-const inline auto mantissa = option(sign) * (attempt(multi("0b") * many1(digit(2)) * dot * many1(digit(2))) +
-                                             attempt(multi("0q") * many1(digit(4)) * dot * many1(digit(4))) +
-                                             attempt(multi("0o") * many1(digit(8)) * dot * many1(digit(8))) +
-                                             attempt(multi("0d") * many1(digit(10)) * dot * many1(digit(10))) +
-                                             attempt(multi("0x") * many1(digit(16)) * dot * many1(digit(16))) +
-                                             many1(digit(10)) * dot * many1(digit(10)));
+const inline auto mantissa_digits(int n) { return many1(digit(n)) * dot * many1(digit(n)); }
+const inline auto mantissa =
+    option(sign) * (attempt(multi("0b") * mantissa_digits(2)) + attempt(multi("0q") * mantissa_digits(4)) +
+                    attempt(multi("0o") * mantissa_digits(8)) + attempt(multi("0d") * mantissa_digits(10)) +
+                    attempt(multi("0x") * mantissa_digits(16)) + mantissa_digits(10));
 const inline auto exponent = list("eE") * option(sign) * many1(digit(10));
 const inline auto real = mantissa * option(exponent);
 

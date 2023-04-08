@@ -182,12 +182,8 @@ satify one(char token) {
 }
 
 satify range(char begin, char end) {
+    assert(begin <= end);
     return satify([begin, end](char c) { return begin <= c && c <= end; });
-}
-
-satify list(std::initializer_list<char> _items) {
-    const std::unordered_set<char> items(_items);
-    return satify([items](char c) -> bool { return items.contains(c); });
 }
 
 satify list(std::string_view _items) {
