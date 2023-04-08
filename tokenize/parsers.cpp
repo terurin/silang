@@ -196,7 +196,7 @@ satify list(std::string_view _items) {
 }
 
 // 整数関係
-satify digit_base(unsigned int base) {
+satify digit(unsigned int base) {
     assert(base <= 10 + 26);
     if (base <= 10) {
         return range('0', '0' + base - 1);
@@ -209,23 +209,6 @@ satify digit_base(unsigned int base) {
         result |= 'A' <= c && c <= 'A' + base - 0xa - 1;
         return result;
     });
-}
-
-std::optional<unsigned int> base_number(char c) {
-    switch (c) {
-    case 'b':
-        return 2;
-    case 'q':
-        return 4;
-    case 'o':
-        return 8;
-    case 'd':
-        return 10;
-    case 'x':
-        return 16;
-    default:
-        return std::nullopt;
-    }
 }
 
 bool eof(reader_ptr &reader, std::string &s) { return !reader->peek(); }

@@ -115,26 +115,15 @@ const inline satify any([](char _) { return true; });
 const inline satify none([](char _) { return false; });
 
 // 整数関係
-satify digit_base(unsigned int base = 10);
+satify digit(unsigned int base = 10);
 const inline satify sign = list({'+', '-'});
 const inline satify base_list = list({'b', 'q', 'o', 'd', 'x'});
-std::optional<unsigned int> base_number(char c);
-const inline satify digit_bin = digit_base(2);
-const inline satify digit_quad = digit_base(4);
-const inline satify digit_dec = digit_base(10);
-const inline satify digit = digit_dec;
-const inline satify digit_hex = digit_base(16);
-const inline auto digits_bin_many1 = many1(digit_base(2));
-const inline auto digits_quad_many1 = many1(digit_base(4));
-const inline auto digits_oct_many1 = many1(digit_base(8));
-const inline auto digits_dec_many1 = many1(digit_base(10));
-const inline auto digits_hex_many1 = many1(digit_base(16));
 
 // アルファベット
 const inline satify small = range('a', 'z');
 const inline satify large = range('A', 'Z');
 const inline auto alpha = small + large;
-const inline auto alnum = small + large + digit;
+const inline auto alnum = small + large + digit();
 const inline auto escaped_char = satify([](char c) { return c != '\\'; }) + one('\\') * any;
 // 空白
 const inline auto newline = list({'\n', '\r'});
@@ -146,21 +135,19 @@ bool eof(reader_ptr &, std::string &);
 bool nop(reader_ptr &, std::string &);
 
 // atoms
-const inline auto integer =
-    option(sign) * (attempt(multi("0b") * many1(digit_base(2)) + multi("0q") * many1(digit_base(4)) +
-                            multi("0o") * many1(digit_base(8)) + multi("0d") * many1(digit_base(10)) +
-                            multi("0x") * many1(digit_base(16))) +
-                    many1(digit_base(10)));
+const inline auto integer = option(sign) * (attempt(multi("0b") * many1(digit(2)) + multi("0q") * many1(digit(4)) +
+                                                    multi("0o") * many1(digit(8)) + multi("0d") * many1(digit(10)) +
+                                                    multi("0x") * many1(digit(16))) +
+                                            many1(digit(10)));
 
 const inline auto dot = one('.');
-const inline auto mantissa =
-    option(sign) * (attempt(multi("0b") * many1(digit_base(2)) * dot * many1(digit_base(2))) +
-                    attempt(multi("0q") * many1(digit_base(4)) * dot * many1(digit_base(4))) +
-                    attempt(multi("0o") * many1(digit_base(8)) * dot * many1(digit_base(8))) +
-                    attempt(multi("0d") * many1(digit_base(10)) * dot * many1(digit_base(10))) +
-                    attempt(multi("0x") * many1(digit_base(16)) * dot * many1(digit_base(16))) +
-                    digits_dec_many1 * dot * digits_dec_many1);
-const inline auto exponent = list("eE") * option(sign) * digits_dec_many1;
+const inline auto mantissa = option(sign) * (attempt(multi("0b") * many1(digit(2)) * dot * many1(digit(2))) +
+                                             attempt(multi("0q") * many1(digit(4)) * dot * many1(digit(4))) +
+                                             attempt(multi("0o") * many1(digit(8)) * dot * many1(digit(8))) +
+                                             attempt(multi("0d") * many1(digit(10)) * dot * many1(digit(10))) +
+                                             attempt(multi("0x") * many1(digit(16)) * dot * many1(digit(16))) +
+                                             many1(digit(10)) * dot * many1(digit(10)));
+const inline auto exponent = list("eE") * option(sign) * many1(digit(10));
 const inline auto real = mantissa * option(exponent);
 
 const inline auto text = attempt(bracket(multi("\"\"\""), escaped_char, attempt(multi("\"\"\"")))) +
