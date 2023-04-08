@@ -7,7 +7,7 @@ using tokenize::readers::make_string_reader;
 
 // satify
 void satify_success_test() {
-    auto reader = make_string_reader("demo", "1");
+    auto reader = make_string_reader("1");
     char c = 0;
     const auto p = reader->get_position();
     TEST_ASSERT(satify([](char c) { return c == '1'; })(reader, c));
@@ -16,7 +16,7 @@ void satify_success_test() {
 }
 
 void satify_failed_test() {
-    auto reader = make_string_reader("demo", "1");
+    auto reader = make_string_reader("1");
     char c = 0;
     const auto p = reader->get_position();
     TEST_ASSERT(!satify([](char t) { return t == '0'; })(reader, c));
@@ -25,14 +25,14 @@ void satify_failed_test() {
 }
 
 void satify_eof_test() {
-    auto reader = make_string_reader("demo", "");
+    auto reader = make_string_reader("");
     char c;
     TEST_ASSERT(!satify([](char c) { return true; })(reader, c));
 }
 
 // multi
 void multi_success_test() {
-    auto reader = make_string_reader("demo", "hello");
+    auto reader = make_string_reader("hello");
     std::string s;
     const auto p = reader->get_position();
     TEST_ASSERT(multi("hello")(reader, s));
@@ -41,7 +41,7 @@ void multi_success_test() {
 }
 
 void multi_failed_0_test() {
-    auto reader = make_string_reader("demo", "hello");
+    auto reader = make_string_reader("hello");
     std::string s;
     const auto p = reader->get_position();
     TEST_ASSERT(!multi("world")(reader, s));
@@ -49,7 +49,7 @@ void multi_failed_0_test() {
 }
 
 void multi_failed_1_test() {
-    auto reader = make_string_reader("demo", "hello");
+    auto reader = make_string_reader("hello");
     std::string s;
     const auto p = reader->get_position();
     TEST_ASSERT(!multi("hola")(reader, s));
@@ -60,12 +60,12 @@ void multi_failed_1_test() {
 void multi_list_success_0_test() {
     auto parser = multi_list({"hello", "hola"});
     {
-        auto reader = make_string_reader("demo", "hola");
+        auto reader = make_string_reader("hola");
         std::string s;
         TEST_ASSERT(parser(reader, s) && s == "hola");
     }
     {
-        auto reader = make_string_reader("demo", "hello");
+        auto reader = make_string_reader("hello");
         std::string s;
         TEST_ASSERT(parser(reader, s) && s == "hello");
     }
@@ -74,12 +74,12 @@ void multi_list_success_0_test() {
 void multi_list_failed_0_test() {
     auto parser = multi_list({"hello", "hola"});
     {
-        auto reader = make_string_reader("demo", "bye");
+        auto reader = make_string_reader("bye");
         std::string s;
         TEST_ASSERT(!parser(reader, s));
     }
     {
-        auto reader = make_string_reader("demo", "hi world");
+        auto reader = make_string_reader("hi world");
         std::string s;
         TEST_ASSERT(!parser(reader, s));
     }
@@ -87,7 +87,7 @@ void multi_list_failed_0_test() {
 
 // commnet
 void commnet_success_line_test() {
-    auto reader = make_string_reader("demo", "//ab\n");
+    auto reader = make_string_reader("//ab\n");
     {
         std::string s;
         TEST_ASSERT(comment(reader, s) && s == "//ab\n");
@@ -95,7 +95,7 @@ void commnet_success_line_test() {
 }
 
 void commnet_success_block_test() {
-    auto reader = make_string_reader("demo", "/*abc*/");
+    auto reader = make_string_reader("/*abc*/");
     {
         std::string s;
         TEST_ASSERT(comment(reader, s) && s == "/*abc*/");
@@ -104,7 +104,7 @@ void commnet_success_block_test() {
 
 // variable
 void variable_success_alpha_test() {
-    auto reader = make_string_reader("demo", "hello");
+    auto reader = make_string_reader("hello");
     {
         std::string s;
         TEST_ASSERT(variable(reader, s) && s == "hello");
@@ -112,7 +112,7 @@ void variable_success_alpha_test() {
 }
 
 void variable_success_alnum_test() {
-    auto reader = make_string_reader("demo", "abc123");
+    auto reader = make_string_reader("abc123");
     {
         std::string s;
         TEST_ASSERT(variable(reader, s) && s == "abc123");
@@ -120,7 +120,7 @@ void variable_success_alnum_test() {
 }
 
 void variable_failed_number_test() {
-    auto reader = make_string_reader("demo", "1");
+    auto reader = make_string_reader("1");
     {
         std::string s;
         TEST_ASSERT(!variable(reader, s));
@@ -129,7 +129,7 @@ void variable_failed_number_test() {
 
 // character
 void character_success_alpha_test() {
-    auto reader = make_string_reader("demo", "'a'");
+    auto reader = make_string_reader("'a'");
     {
         std::string s;
         TEST_ASSERT(character(reader, s) && s == "'a'");
@@ -137,7 +137,7 @@ void character_success_alpha_test() {
 }
 
 void character_success_newline_test() {
-    auto reader = make_string_reader("demo", "'\n'");
+    auto reader = make_string_reader("'\n'");
     {
         std::string s;
         TEST_ASSERT(character(reader, s) && s == "'\n'");
@@ -145,7 +145,7 @@ void character_success_newline_test() {
 }
 
 void character_failed_empty_test() {
-    auto reader = make_string_reader("demo", "''");
+    auto reader = make_string_reader("''");
     {
         std::string s;
         TEST_ASSERT(!character(reader, s));
@@ -153,7 +153,7 @@ void character_failed_empty_test() {
 }
 
 void character_failed_over_test() {
-    auto reader = make_string_reader("demo", "'01'");
+    auto reader = make_string_reader("'01'");
     {
         std::string s;
         TEST_ASSERT(!character(reader, s));

@@ -3,25 +3,24 @@
 using namespace tokenize::readers;
 
 void position_test() {
-    position p("demo");
-    TEST_ASSERT(p.name == "demo" && p.offset == 0 && p.line == 0 && p.number == 0);
+    position p;
+    TEST_ASSERT(p.offset == 0 && p.line == 0 && p.number == 0);
 
     // non newline
     p.next('a');
-    TEST_ASSERT(p.name == "demo" && p.offset == 1 && p.line == 0 && p.number == 1);
+    TEST_ASSERT(p.offset == 1 && p.line == 0 && p.number == 1);
 
     // newline \n
     p.next('\n');
-    TEST_ASSERT(p.name == "demo" && p.offset == 2 && p.line == 1 && p.number == 0);
+    TEST_ASSERT(p.offset == 2 && p.line == 1 && p.number == 0);
 
     // newline \r
     p.next('\r');
-    TEST_ASSERT(p.name == "demo" && p.offset == 3 && p.line == 2 && p.number == 0);
-
+    TEST_ASSERT(p.offset == 3 && p.line == 2 && p.number == 0);
 }
 
 void string_reader_test() {
-    reader_ptr r = make_string_reader("demo", "a");
+    reader_ptr r = make_string_reader( "a");
 
     // default position
     const auto p0 = r->get_position();
