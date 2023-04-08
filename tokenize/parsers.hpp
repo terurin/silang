@@ -152,10 +152,20 @@ const inline auto integer =
                             multi("0x") * many1(digit_base(16))) +
                     many1(digit_base(10)));
 
-bool real(reader_ptr &, std::string &);
+const inline auto dot = one('.');
+const inline auto mantissa =
+    option(sign) * (attempt(multi("0b") * many1(digit_base(2)) * dot * many1(digit_base(2))) +
+                    attempt(multi("0q") * many1(digit_base(4)) * dot * many1(digit_base(4))) +
+                    attempt(multi("0o") * many1(digit_base(8)) * dot * many1(digit_base(8))) +
+                    attempt(multi("0d") * many1(digit_base(10)) * dot * many1(digit_base(10))) +
+                    attempt(multi("0x") * many1(digit_base(16)) * dot * many1(digit_base(16))) +
+                    digits_dec_many1 * dot * digits_dec_many1);
+const inline auto exponent = list("eE") * option(sign) * digits_dec_many1;
+const inline auto real = mantissa * option(exponent);
+
 const inline auto text = attempt(bracket(multi("\"\"\""), escaped_char, attempt(multi("\"\"\"")))) +
                          bracket(one('"'), escaped_char, one('"'));
-// bool comment(reader_ptr &, std::string &);
+
 const inline auto comment =
     attempt(bracket(multi("//"), any, newline + eof)) + bracket(multi("/*"), any, attempt(multi("*/")));
 const inline auto variable = (alpha + one('_')) * many0(alnum + one('_'));
