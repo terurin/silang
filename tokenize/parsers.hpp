@@ -74,12 +74,12 @@ static inline repeat_range repeat(const parser_t<std::string> &parser, unsigned 
     return repeat_range(parser, n, n);
 }
 
-class attempt {
-    const parser_t<std::string> parser;
+template <class T> class attempt {
+    const parser_t<T> parser;
 
 public:
-    attempt(const parser_t<std::string> &_parser) : parser(_parser) {}
-    bool operator()(reader_ptr &, std::string &) const;
+    attempt(const parser_t<T> &_parser) : parser(_parser) {}
+    bool operator()(reader_ptr &reader, T &out) const;
 };
 
 class sum {
@@ -118,7 +118,7 @@ satify digit(unsigned int base = 10);
 const inline satify sign = list("+-");
 
 static inline auto escaped_digits(unsigned int n = 10) {
-    return many1(digit(n)) * many0(attempt(many1(one('_')) * many1(digit(n))));
+    return many1(digit(n)) * many0(attempt<std::string>(many1(one('_')) * many1(digit(n))));
 }
 
 // アルファベット
@@ -138,29 +138,34 @@ bool nop(reader_ptr &, std::string &);
 
 // integer
 const inline auto integer =
-    option(sign) * (attempt(multi("0b") * escaped_digits(2)) + attempt(multi("0q") * escaped_digits(4)) +
-                    attempt(multi("0o") * escaped_digits(8)) + attempt(multi("0d") * escaped_digits(10)) +
-                    attempt(multi("0x") * escaped_digits(16)) + escaped_digits(10));
+    option(sign) *
+    (attempt<std::string>(multi("0b") * escaped_digits(2)) + attempt<std::string>(multi("0q") * escaped_digits(4)) +
+     attempt<std::string>(multi("0o") * escaped_digits(8)) + attempt<std::string>(multi("0d") * escaped_digits(10)) +
+     attempt<std::string>(multi("0x") * escaped_digits(16)) + escaped_digits(10));
 
 // real
 const inline auto dot = one('.');
 const inline auto mantissa_digits(unsigned int n) { return escaped_digits(n) * dot * escaped_digits(n); }
 const inline auto mantissa =
-    option(sign) * (attempt(multi("0b") * mantissa_digits(2)) + attempt(multi("0q") * mantissa_digits(4)) +
-                    attempt(multi("0o") * mantissa_digits(8)) + attempt(multi("0d") * mantissa_digits(10)) +
-                    attempt(multi("0x") * mantissa_digits(16)) + mantissa_digits(10));
+    option(sign) *
+    (attempt<std::string>(multi("0b") * mantissa_digits(2)) + attempt<std::string>(multi("0q") * mantissa_digits(4)) +
+     attempt<std::string>(multi("0o") * mantissa_digits(8)) + attempt<std::string>(multi("0d") * mantissa_digits(10)) +
+     attempt<std::string>(multi("0x") * mantissa_digits(16)) + mantissa_digits(10));
 const inline auto exponent = list("eE") * option(sign) * escaped_digits(10);
 const inline auto real = mantissa * option(exponent);
 
 // boolean
-const inline auto boolean=multi_list({"true","false"});
+const inline auto boolean = multi_list({"true", "false"});
 
 // atoms(others)
-const inline auto text = attempt(bracket(multi("\"\"\""), escaped_char, attempt(multi("\"\"\"")))) +
-                         bracket(one('"'), escaped_char, one('"'));
+const inline auto text =
+    attempt<std::string>(bracket(multi("\"\"\""), escaped_char, attempt<std::string>(multi("\"\"\"")))) +
+    bracket(one('"'), escaped_char, one('"'));
 
-const inline auto comment =
-    attempt(bracket(multi("//"), any, newline + eof)) + bracket(multi("/*"), any, attempt(multi("*/")));
+const inline auto comment = attempt<std::string>(bracket(multi("//"), any, newline + eof)) +
+                            bracket(multi("/*"), any, attempt<std::string>(multi("*/")));
 const inline auto variable = (alpha + one('_')) * many0(alnum + one('_'));
 const inline auto character = one('\'') * escaped_char * one('\'');
 } // namespace tokenize::parsers
+
+#include "parsers.cxx"

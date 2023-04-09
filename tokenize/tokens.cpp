@@ -164,24 +164,24 @@ bool tokenize(reader_ptr &reader, token &token) {
     token.text = "";
 
     // [digit]
-    if (tokener(token_id::real, attempt(real))(reader, token)) {
+    if (tokener(token_id::real, attempt<std::string>(real))(reader, token)) {
         return true;
     }
 
-    if (tokener(token_id::boolean, attempt(boolean))(reader, token)) {
+    if (tokener(token_id::boolean, attempt<std::string>(boolean))(reader, token)) {
         return true;
     }
 
-    if (tokener(token_id::integer, attempt(integer))(reader, token)) {
+    if (tokener(token_id::integer, attempt<std::string>(integer))(reader, token)) {
         return true;
     }
 
     // "
-    if (tokener(token_id::text, attempt(text))(reader, token)) {
+    if (tokener(token_id::text, attempt<std::string>(text))(reader, token)) {
         return true;
     }
     // '
-    if (tokener(token_id::character, attempt(character))(reader, token)) {
+    if (tokener(token_id::character, attempt<std::string>(character))(reader, token)) {
         return true;
     }
 
