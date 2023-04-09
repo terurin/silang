@@ -4,7 +4,7 @@
 #include "readers.hpp"
 #include <iostream>
 #include <string>
-
+#include <unordered_map>
 namespace tokenize::tokens {
 using parsers::parser_t;
 using readers::reader_ptr, readers::position;
@@ -97,7 +97,18 @@ struct token {
 };
 
 std::ostream &operator<<(std::ostream &, const token &);
-bool operation(reader_ptr &, token &);
+
+class token_table {
+    std::unordered_map<std::string, token_id> table;
+    parsers::multi_list list;
+
+public:
+    token_table(const std::unordered_map<std::string, token_id> &_table);
+    bool operator()(reader_ptr &, token &) const;
+};
+
+extern const token_table operations;
+extern const token_table types;
 
 class tokener {
     const token_id id;

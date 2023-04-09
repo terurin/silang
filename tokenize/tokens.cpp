@@ -1,10 +1,11 @@
 #include "tokenize.hpp"
 #include <map>
 namespace tokenize::tokens {
-const static std::map<std::string, token_id> op_table = []() -> std::map<std::string, token_id> {
+const static std::unordered_map<std::string, token_id> operations_table =
+    []() -> std::unordered_map<std::string, token_id> {
     using enum token_id;
 
-    std::map<std::string, token_id> t;
+    std::unordered_map<std::string, token_id> t;
 
     // assign
     t.insert({{"=", op_assign}, {":=", op_assign_bind}});
@@ -54,6 +55,12 @@ const static std::map<std::string, token_id> op_table = []() -> std::map<std::st
               {",", op_comma},
               {":", op_colon}});
 
+    return t;
+}();
+
+const static std::unordered_map<std::string, token_id> types_table = []() {
+    using enum token_id;
+    std::unordered_map<std::string, token_id> t;
     // types
     t.insert({{"bool", type_bool},
               {"int", type_int},
@@ -91,9 +98,16 @@ std::ostream &operator<<(std::ostream &os, token_id id) {
         return os << buffer;
     }
 
-    for (const auto &[key, value] : op_table) {
+    for (const auto &[key, value] : operations_table) {
         if (value == id) {
             snprintf(buffer, sizeof(buffer), "op[%s](%x)", key.c_str(), (int)id);
+            return os << buffer;
+        }
+    }
+
+    for (const auto &[key, value] : types_table) {
+        if (value == id) {
+            snprintf(buffer, sizeof(buffer), "type[%s](%x)", key.c_str(), (int)id);
             return os << buffer;
         }
     }
@@ -104,24 +118,25 @@ std::ostream &operator<<(std::ostream &os, token_id id) {
 
 std::ostream &operator<<(std::ostream &os, const token &t) { return os << t.id << ":" << t.text; }
 
-bool operation(reader_ptr &reader, token &t) {
-    const static parsers::multi_list keywords([]() {
-        std::vector<std::string> ks;
-        for (const auto &[key, value] : op_table) {
-            ks.push_back(key);
-        }
+token_table::token_table(const std::unordered_map<std::string, token_id> &_table)
+    : table(_table), list([](const std::unordered_map<std::string, token_id> &ts) {
+          std::vector<std::string> ks;
+          for (const auto &[key, value] : ts) {
+              ks.push_back(key);
+          }
 
-        return ks;
-    }());
+          return ks;
+      }(_table)) {}
 
+bool token_table::operator()(reader_ptr &reader, token &t) const {
     std::string s;
     const auto pos = reader->get_position();
-    if (!keywords(reader, s)) {
+    if (!list(reader, s)) {
         return false;
     }
     // map
     t.id = token_id::none;
-    if (auto iter = op_table.find(s.c_str()); iter != op_table.end()) {
+    if (auto iter = table.find(s.c_str()); iter != table.end()) {
         t.id = iter->second;
     }
     if (t.id == token_id::none) {
@@ -132,6 +147,9 @@ bool operation(reader_ptr &reader, token &t) {
     t.pos = pos;
     return true;
 }
+
+const token_table operations(operations_table);
+const token_table types(types_table);
 
 bool tokener::operator()(reader_ptr &reader, token &t) const {
     const position pos = reader->get_position();
@@ -149,44 +167,44 @@ bool tokener::operator()(reader_ptr &reader, token &t) const {
     return true;
 }
 
-bool tokenize(reader_ptr &reader, token &token) {
+bool tokenize(reader_ptr &reader, token &t) {
     using namespace parsers;
     std::string s;
 
     many0(spaces + comment)(reader, s);
 
     // operation
-    auto position = reader->get_position();
-    if (operation(reader, token)) {
+    if (attempt<token>(types)(reader, t)) {
         return true;
     }
-    reader->set_position(position);
-    token.text = "";
+    if (attempt<token>(operations)(reader, t)) {
+        return true;
+    }
 
     // [digit]
-    if (tokener(token_id::real, attempt<std::string>(real))(reader, token)) {
+    if (attempt<token>(tokener(token_id::real, real))(reader, t)) {
         return true;
     }
 
-    if (tokener(token_id::boolean, attempt<std::string>(boolean))(reader, token)) {
+    if (attempt<token>(tokener(token_id::boolean, boolean))(reader, t)) {
         return true;
     }
 
-    if (tokener(token_id::integer, attempt<std::string>(integer))(reader, token)) {
+    if (attempt<token>(tokener(token_id::integer, integer))(reader, t)) {
         return true;
     }
 
     // "
-    if (tokener(token_id::text, attempt<std::string>(text))(reader, token)) {
+    if (attempt<token>(tokener(token_id::text, text))(reader, t)) {
         return true;
     }
     // '
-    if (tokener(token_id::character, attempt<std::string>(character))(reader, token)) {
+    if (attempt<token>(tokener(token_id::character, character))(reader, t)) {
         return true;
     }
 
     // [a-zA-Z_]
-    if (tokener(token_id::variable, variable)(reader, token)) {
+    if (tokener(token_id::variable, variable)(reader, t)) {
         return true;
     }
     return false;
