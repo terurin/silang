@@ -148,14 +148,14 @@ bool repeat_range::operator()(reader_ptr &reader, std::string &s) const {
 
 bool attempt::operator()(reader_ptr &reader, std::string &s) const {
     // store
-    std::string s_keep = s;
+    const size_t length_keep = s.length();
     const position p_keep = reader->get_position();
     // parse
     if (parser(reader, s)) {
         return true;
     }
     // restore
-    s = s_keep;
+    s.resize(length_keep);
     reader->set_position(p_keep);
     return false;
 }
@@ -168,7 +168,7 @@ bool sum::operator()(reader_ptr &reader, std::string &s) const {
         return true;
     }
     // error check
-    if (reader->get_position() != reader->get_position()) {
+    if (keep != reader->get_position()) {
         std::cerr << "overrun" << std::endl;
         return false;
     }
