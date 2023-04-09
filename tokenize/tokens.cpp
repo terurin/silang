@@ -54,10 +54,13 @@ const static std::map<std::string, token_id> op_table = []() -> std::map<std::st
               {",", op_comma},
               {":", op_colon}});
 
-    // keyword
-    t.insert({{"bool", word_bool}, {"true", word_true}, {"false", word_false}});
-    // int,uint
-    t.insert({{"char", word_char}, {"int", word_int}, {"uint", word_uint}, {"str", word_str}, {"func", word_func}});
+    // types
+    t.insert({{"bool", type_bool},
+              {"int", type_int},
+              {"uint", type_uint},
+              {"char", type_char},
+              {"str", type_str},
+              {"func", type_func}});
     return t;
 }();
 
@@ -158,12 +161,17 @@ bool tokenize(reader_ptr &reader, token &token) {
         return true;
     }
     reader->set_position(position);
-    token.text="";
+    token.text = "";
 
     // [digit]
     if (tokener(token_id::real, attempt(real))(reader, token)) {
         return true;
     }
+
+    if (tokener(token_id::boolean, attempt(boolean))(reader, token)) {
+        return true;
+    }
+
     if (tokener(token_id::integer, attempt(integer))(reader, token)) {
         return true;
     }

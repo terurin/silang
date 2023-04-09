@@ -80,16 +80,13 @@ enum class token_id {
     op_comma,                //,
     op_colon,                //:
 
-    // bool
-    word_bool = 0x100,
-    word_true,
-    word_false,
-    // types
-    word_char,
-    word_int,
-    word_uint,
-    word_str,
-    word_func,
+    // type
+    type_bool = 0x100,
+    type_int,
+    type_uint,
+    type_char,
+    type_str,
+    type_func,
 };
 
 std::ostream &operator<<(std::ostream &, token_id);

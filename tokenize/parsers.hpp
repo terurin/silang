@@ -152,6 +152,9 @@ const inline auto mantissa =
 const inline auto exponent = list("eE") * option(sign) * escaped_digits(10);
 const inline auto real = mantissa * option(exponent);
 
+// boolean
+const inline auto boolean=multi_list({"true","false"});
+
 // atoms(others)
 const inline auto text = attempt(bracket(multi("\"\"\""), escaped_char, attempt(multi("\"\"\"")))) +
                          bracket(one('"'), escaped_char, one('"'));
