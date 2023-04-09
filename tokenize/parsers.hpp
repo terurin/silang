@@ -82,16 +82,18 @@ public:
     bool operator()(reader_ptr &reader, T &out) const;
 };
 
-class sum {
-    const parser_t<std::string> right;
-    const parser_t<std::string> left;
+template <class T> class sum {
+    const parser_t<T> right;
+    const parser_t<T> left;
 
 public:
-    sum(const parser_t<std::string> &_right, const parser_t<std::string> &_left) : right(_right), left(_left) {}
-    bool operator()(reader_ptr &, std::string &) const;
+    sum(const parser_t<T> &_right, const parser_t<T> &_left) : right(_right), left(_left) {}
+    bool operator()(reader_ptr &, T &) const;
 };
 
-static inline sum operator+(const parser_t<std::string> &r, const parser_t<std::string> &l) { return sum(r, l); }
+static inline auto operator+(const parser_t<std::string> &r, const parser_t<std::string> &l) {
+    return sum<std::string>(r, l);
+}
 
 class bracket {
     const parser_t<std::string> begin;

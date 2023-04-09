@@ -146,22 +146,6 @@ bool repeat_range::operator()(reader_ptr &reader, std::string &s) const {
     return true;
 }
 
-bool sum::operator()(reader_ptr &reader, std::string &s) const {
-    // store
-    const auto keep = reader->get_position();
-
-    if (right(reader, s)) {
-        return true;
-    }
-    // error check
-    if (keep != reader->get_position()) {
-        std::cerr << "overrun" << std::endl;
-        return false;
-    }
-
-    return left(reader, s);
-}
-
 bool bracket::operator()(reader_ptr &reader, std::string &out) const {
     if (!begin(reader, out)) {
         return false;

@@ -1,6 +1,23 @@
 #pragma once
 namespace tokenize::parsers {
 
+template <class T>
+bool sum<T>::operator()(reader_ptr &reader, T &out) const {
+    // store
+    const auto keep = reader->get_position();
+
+    if (right(reader, out)) {
+        return true;
+    }
+    // error check
+    if (keep != reader->get_position()) {
+        std::cerr << "overrun" << std::endl;
+        return false;
+    }
+
+    return left(reader, out);
+}
+
 template <class T> bool attempt<T>::operator()(reader_ptr &reader, T &out) const {
     // store
     const T out_keep = out;
