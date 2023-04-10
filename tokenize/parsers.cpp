@@ -6,9 +6,22 @@
 #include <unordered_set>
 namespace tokenize::parsers {
 
-bool satify::operator()(reader_ptr &reader, char &c) const {
+atom::atom(char c) { match.set((unsigned char)c); }
+atom::atom(std::initializer_list<char> items) {
+    for (auto item : items) {
+        match.set((unsigned char)item);
+    }
+}
+
+atom::atom(std::string_view items) {
+    for (auto item : items) {
+        match.set((unsigned char)item);
+    }
+}
+
+bool atom::operator()(reader_ptr &reader, char &c) const {
     const auto peek = reader->peek();
-    if (!peek || !predicate(*peek)) {
+    if (!peek || !match.test((unsigned int)*peek)) {
         return false;
     }
 
@@ -16,14 +29,43 @@ bool satify::operator()(reader_ptr &reader, char &c) const {
     return true;
 }
 
-bool satify::operator()(reader_ptr &reader, std::string &s) const {
+bool atom::operator()(reader_ptr &reader, std::string &s) const {
     const auto peek = reader->peek();
-    if (!peek || !predicate(*peek)) {
+    if (!peek || !match.test((unsigned int)*peek)) {
         return false;
     }
 
     reader->next(), s.push_back(*peek);
     return true;
+}
+
+atom range(unsigned char first, unsigned char last) {
+    match_t m;
+    assert(first <= last);
+    for (size_t i = first; i <= last; i++) {
+        m.set(i);
+    }
+    return m;
+}
+
+atom operator+(const atom &x, const atom &y) { return atom(x.get_match() | y.get_match()); }
+atom operator-(const atom &x, const atom &y) { return atom(x.get_match() & ~y.get_match()); }
+
+// 整数関係
+atom digit(unsigned int base) {
+    match_t m;
+
+    unsigned char i = 0;
+    // 0~9
+    for (; i < base && i < 10; i++) {
+        m.set('0' + i);
+    }
+    // 10~
+    for (; i < base; i++) {
+        m.set('a' + i - 10);
+        m.set('A' + i - 10);
+    }
+    return atom(m);
 }
 
 bool multi::operator()(reader_ptr &reader, std::string &s) const {
@@ -157,36 +199,6 @@ bool bracket::operator()(reader_ptr &reader, std::string &out) const {
     } while (body(reader, out));
 
     return false;
-}
-
-satify one(char token) {
-    return satify([token](char c) { return token == c; });
-}
-
-satify range(char begin, char end) {
-    assert(begin <= end);
-    return satify([begin, end](char c) { return begin <= c && c <= end; });
-}
-
-satify list(std::string_view _items) {
-    const std::unordered_set<char> items(_items.begin(), _items.end());
-    return satify([items](char c) -> bool { return items.contains(c); });
-}
-
-// 整数関係
-satify digit(unsigned int base) {
-    assert(base <= 10 + 26);
-    if (base <= 10) {
-        return range('0', '0' + base - 1);
-    }
-
-    return satify([base](char c) {
-        bool result = false;
-        result |= '0' <= c && c <= '9';
-        result |= 'a' <= c && c <= 'a' + base - 0xa - 1;
-        result |= 'A' <= c && c <= 'A' + base - 0xa - 1;
-        return result;
-    });
 }
 
 bool eof(reader_ptr &reader, std::string &s) { return !reader->peek(); }

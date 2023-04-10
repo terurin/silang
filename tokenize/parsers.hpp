@@ -3,6 +3,7 @@
 #include "readers.hpp"
 #include <algorithm>
 #include <assert.h>
+#include <bitset>
 #include <climits>
 #include <concepts>
 #include <functional>
@@ -12,7 +13,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
 namespace tokenize::parsers {
 
 using readers::reader_ptr, readers::position;
@@ -21,14 +21,44 @@ template <class P, class T = std::string>
 concept parser = std::predicate<reader_ptr &, T &>;
 template <class T = std::string> using parser_t = std::function<bool(reader_ptr &, T &)>;
 
-class satify {
-    const std::function<bool(char)> predicate;
+using match_t = std::bitset<256>;
+class atom {
+    match_t match;
 
 public:
-    satify(const std::function<bool(char)> &_predicate) : predicate(_predicate) {}
+    atom(char);
+    atom(std::initializer_list<char>);
+    atom(std::string_view);
+    atom(const match_t &_match) : match(_match) {}
+    atom(const atom &) = default;
+    const match_t get_match() const { return match; }
+
     bool operator()(reader_ptr &, char &) const;
     bool operator()(reader_ptr &, std::string &) const;
 };
+
+// 生成関係
+atom range(unsigned char first, unsigned char last);
+static inline atom one(unsigned char c) { return atom(c); }
+static inline atom list(std::string_view sv) { return atom(sv); }
+
+inline atom any = range(0, 255);
+inline atom none({});
+atom operator+(const atom &, const atom &);
+atom operator-(const atom &, const atom &);
+
+// 記号
+const inline atom sign = atom("+-");
+const inline atom escape = atom({'\\'});
+const inline atom not_escape = any-escape;
+atom digit(unsigned int n = 10);
+const inline atom small = range('a', 'z');
+const inline atom large = range('A', 'Z');
+const inline atom alpha = small + large;
+const inline atom alnum = small + large + digit();
+// 空白
+const inline auto newline = list("\r\n");
+const inline auto space = list(" \t\n\r");
 
 class multi {
     const std::string keyword;
@@ -108,30 +138,16 @@ public:
 
 // token series
 
-satify one(char token);
-satify range(char first, char last);
-satify list(std::string_view items);
-
-const inline satify any([](char _) { return true; });
-const inline satify none([](char _) { return false; });
-
 // 整数関係
-satify digit(unsigned int base = 10);
-const inline satify sign = list("+-");
 
 static inline auto escaped_digits(unsigned int n = 10) {
     return many1(digit(n)) * many0(attempt<std::string>(many1(one('_')) * many1(digit(n))));
 }
 
 // アルファベット
-const inline satify small = range('a', 'z');
-const inline satify large = range('A', 'Z');
-const inline auto alpha = small + large;
-const inline auto alnum = small + large + digit();
-const inline auto escaped_char = satify([](char c) { return c != '\\'; }) + one('\\') * any;
-// 空白
-const inline auto newline = list("\r\n");
-const inline auto space = list(" \t\n\r");
+
+const inline auto escaped_char = not_escape + one('\\') * any;
+
 const inline auto spaces = many1(space);
 
 // 特殊

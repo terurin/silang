@@ -5,29 +5,11 @@
 using namespace tokenize::parsers;
 using tokenize::readers::make_string_reader;
 
-// satify
-void satify_success_test() {
+// digit
+void digit_success_1_test() {
     auto reader = make_string_reader("1");
-    char c = 0;
-    const auto p = reader->get_position();
-    TEST_ASSERT(satify([](char c) { return c == '1'; })(reader, c));
-    TEST_ASSERT(c == '1');
-    TEST_ASSERT(reader->get_position() != p);
-}
-
-void satify_failed_test() {
-    auto reader = make_string_reader("1");
-    char c = 0;
-    const auto p = reader->get_position();
-    TEST_ASSERT(!satify([](char t) { return t == '0'; })(reader, c));
-    TEST_ASSERT(c == 0);
-    TEST_ASSERT(reader->get_position() == p);
-}
-
-void satify_eof_test() {
-    auto reader = make_string_reader("");
-    char c;
-    TEST_ASSERT(!satify([](char c) { return true; })(reader, c));
+    std::string s;
+    TEST_ASSERT(digit()(reader, s));
 }
 
 // multi
@@ -161,10 +143,8 @@ void character_failed_over_test() {
 }
 
 TEST_LIST = {
-    // safity
-    {"satify_success_test", satify_success_test},
-    {"satify_failed_test", satify_failed_test},
-    {"satify_eof_test", satify_eof_test},
+    // digit
+    {"digit_success_1_test",digit_success_1_test},
     // multi
     {"multi_success_test", multi_success_test},
     {"multi_faield_0_test", multi_failed_0_test},
