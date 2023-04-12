@@ -110,14 +110,14 @@ std::optional<size_t> instruction::parse(reader_ptr &reader) const {
 }
 
 beaker::beaker() {
-    instruction *const inst = new instruction(atom::epsilon.get_match());
+    instruction *const inst = new instruction(atom::epsilon);
     inst->set_accept();
     owners.push_back(inst);
     root = inst;
 }
 
 beaker::beaker(const atom &a) {
-    instruction *const inst = new instruction(a.get_match());
+    instruction *const inst = new instruction(a);
     inst->set_accept();
 
     owners.push_back(inst);
@@ -194,6 +194,23 @@ beaker beaker::chain(beaker &&x, beaker &&y) {
     y.owners.clear(), y.root = nullptr;
 
     return beaker(std::move(owners), root);
+}
+
+beaker beaker::text(std::string_view sv) {
+    assert(sv.length() > 0);
+    std::vector<instruction *> owners;
+    owners.reserve(sv.length());
+
+    instruction *last = nullptr;
+    for (auto iter = sv.rbegin(); iter != sv.rend(); iter++) {
+        instruction *now = new instruction(atom(*iter));
+        now->set_success(last);
+        owners.push_back(now);
+        last = now;
+    }
+    owners[0]->accept = true;
+
+    return beaker(std::move(owners), last);
 }
 
 bool multi::operator()(reader_ptr &reader, std::string &s) const {

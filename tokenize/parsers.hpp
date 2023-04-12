@@ -72,6 +72,7 @@ struct instruction {
     instruction *success = nullptr;
     instruction *next = nullptr;
 
+    instruction(const atom &_atom) : match(_atom.get_match()) {}
     instruction(match_t _match) : match(_match) {}
     instruction(const instruction &) = default;
 
@@ -99,6 +100,7 @@ public:
 
     static beaker option(beaker &&);
     static beaker chain(beaker &&, beaker &&);
+    static beaker text(std::string_view);
 };
 
 class multi {

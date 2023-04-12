@@ -55,6 +55,14 @@ void beaker_success_chain() {
     TEST_ASSERT(ab(reader, s));
 }
 
+void beaker_success_text() {
+    using namespace std::string_view_literals;
+    auto reader = make_string_reader("hello");
+    std::string s;
+    beaker hello = beaker::text("hello"sv);
+    TEST_ASSERT(hello(reader, s));
+}
+
 // multi
 void multi_success_test() {
     auto reader = make_string_reader("hello");
@@ -194,6 +202,7 @@ TEST_LIST = {
     {"beaker_success_atom", beaker_success_atom},
     {"beaker_success_option", beaker_success_option},
     {"beaker_success_chain", beaker_success_chain},
+    {"beaker_success_text", beaker_success_text},
     // multi
     {"multi_success_test", multi_success_test},
     {"multi_faield_0_test", multi_failed_0_test},
