@@ -291,6 +291,29 @@ beaker beaker::many1(beaker &&base) {
     return beaker(std::move(owners), root);
 }
 
+beaker beaker::sum(beaker &&x, beaker &&y) {
+    std::vector<instruction *> owners;
+    // transfer ownerships
+    std::swap(owners, x.owners);
+    owners.reserve(owners.size() + y.owners.size());
+    std::copy(y.owners.begin(), y.owners.end(), std::back_inserter(owners));
+
+    instruction *root = x.root;
+
+    // merge
+    // TODO: 重複を削除する機能を追加する
+    instruction *last = root;
+    for (instruction *iter = root->next; iter != nullptr; iter = iter->next) {
+        last=iter;
+    }
+    last->next= y.root;
+
+    y.owners.clear();
+    y.root = nullptr;
+
+    return beaker(std::move(owners), root);
+}
+
 static inline std::unordered_map<std::string, bool> table_from_keywords(const std::vector<std::string> &keywords) {
     std::unordered_map<std::string, bool> table;
     // 部分文字列を書き出す
