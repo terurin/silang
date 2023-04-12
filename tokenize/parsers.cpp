@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <map>
+#include <stack>
 #include <unordered_set>
 namespace tokenize::parsers {
 
@@ -20,6 +21,10 @@ atom::atom(std::string_view items) {
 }
 
 bool atom::operator()(reader_ptr &reader, char &c) const {
+    if (is_epsilon()) {
+        return true;
+    }
+
     const auto peek = reader->peek();
     if (!peek || !match.test((unsigned int)*peek)) {
         return false;
@@ -39,6 +44,8 @@ bool atom::operator()(reader_ptr &reader, std::string &s) const {
     return true;
 }
 
+const atom atom::epsilon;
+
 atom range(unsigned char first, unsigned char last) {
     match_t m;
     assert(first <= last);
@@ -54,7 +61,7 @@ atom operator-(const atom &x, const atom &y) { return atom(x.get_match() & ~y.ge
 // 整数関係
 atom digit(unsigned int base) {
     match_t m;
-
+    assert(base <= 10 + 26); // sum of digits and alphabets
     unsigned char i = 0;
     // 0~9
     for (; i < base && i < 10; i++) {
@@ -66,6 +73,127 @@ atom digit(unsigned int base) {
         m.set('A' + i - 10);
     }
     return atom(m);
+}
+
+std::optional<size_t> instruction::parse(reader_ptr &reader) const {
+    using std::nullopt;
+
+    std::optional<size_t> result = nullopt;
+    if (is_epsilon()) {
+        result = 0;
+    }
+
+    const auto peek = reader->peek();
+    if (!peek) {
+        return result;
+    }
+
+    if (match.test(*peek) && accept) {
+        result = 1;
+    }
+    if (match.test(*peek) && success) {
+        const auto position = reader->get_position();
+        reader->next();
+        if (const auto read = success->parse(reader); read) {
+            result = std::max(result.value_or(0), *read + 1);
+        }
+        reader->set_position(position);
+    }
+    if (next) {
+        const auto position = reader->get_position();
+        if (const auto read = next->parse(reader); read) {
+            result = std::max(result.value_or(0), *read);
+        }
+        reader->set_position(position);
+    }
+    return result;
+}
+
+beaker::beaker() {
+    instruction *const inst = new instruction(atom::epsilon.get_match());
+    inst->set_accept();
+    owners.push_back(inst);
+    root = inst;
+}
+
+beaker::beaker(const atom &a) {
+    instruction *const inst = new instruction(a.get_match());
+    inst->set_accept();
+
+    owners.push_back(inst);
+    root = inst;
+}
+
+beaker::~beaker() {
+    for (auto &owner : owners) {
+        delete owner;
+        owner = nullptr;
+    }
+    owners.clear();
+}
+
+bool beaker::operator()(reader_ptr &reader, std::string &out) {
+    assert(root);
+    const auto read = root->parse(reader);
+    if (!read) {
+        return false;
+    }
+
+    for (size_t s = 0; s < *read; s++) {
+        auto next = reader->next();
+        if (!next) {
+            std::cerr << "unexpected read" << std::endl;
+            return false;
+        }
+        out.push_back(*next);
+    }
+    return true;
+}
+
+beaker::beaker(beaker &&origin) {
+    std::swap(owners, origin.owners);
+    std::swap(root, origin.root);
+}
+
+beaker beaker::option(beaker &&x) {
+    std::vector<instruction *> owners;
+    std::swap(owners, x.owners);
+
+    // insert
+    instruction *const inst = new instruction(atom::epsilon.get_match());
+    inst->next = x.root;
+    owners.push_back(inst);
+
+    return beaker(std::move(owners), inst);
+}
+
+beaker beaker::chain(beaker &&x, beaker &&y) {
+    std::vector<instruction *> owners;
+    owners.reserve(2 * x.owners.size() + y.owners.size());
+
+    // xで受理できるものをyのrootに変更する
+    for (instruction *inst : x.owners) {
+        if (!inst->accept) continue;
+        inst->accept = false;
+        if (!inst->success) {
+            inst->success = y.root;
+            continue;
+        }
+
+        // insert
+        instruction *const inst2 = new instruction(*inst); // copy
+        inst->next = inst2;
+        inst2->success = y.root;
+        owners.push_back(inst2);
+    }
+    // transfer ownerships
+    instruction *root = x.root;
+    std::copy(x.owners.begin(), x.owners.end(), std::back_inserter(owners));
+    std::copy(y.owners.begin(), y.owners.end(), std::back_inserter(owners));
+    x.owners.clear(), x.root = nullptr;
+    y.owners.clear(), y.root = nullptr;
+
+    return beaker(std::move(owners), root);
 }
 
 bool multi::operator()(reader_ptr &reader, std::string &s) const {

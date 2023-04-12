@@ -6,10 +6,53 @@ using namespace tokenize::parsers;
 using tokenize::readers::make_string_reader;
 
 // digit
-void digit_success_1_test() {
-    auto reader = make_string_reader("1");
+void digit_success_dec_test() {
+    auto reader = make_string_reader("9");
     std::string s;
     TEST_ASSERT(digit()(reader, s));
+}
+
+void digit_success_hex_test() {
+    auto reader = make_string_reader("f");
+    std::string s;
+    TEST_ASSERT(digit(16)(reader, s));
+}
+
+// beaker
+void beaker_success_empty() {
+    auto reader = make_string_reader("");
+    std::string s;
+    TEST_ASSERT(beaker()(reader, s));
+}
+
+void beaker_success_atom() {
+    auto reader = make_string_reader("a");
+    std::string s;
+    TEST_ASSERT(beaker(atom('a'))(reader, s));
+}
+
+void beaker_success_option() {
+
+    std::string s;
+    beaker a(atom('a'));
+    beaker opt_a = beaker::option(std::move(a));
+    {
+        auto reader = make_string_reader("");
+        TEST_ASSERT(opt_a(reader, s));
+    }
+    {
+        auto reader = make_string_reader("a");
+        TEST_ASSERT(opt_a(reader, s));
+    }
+}
+
+void beaker_success_chain() {
+    auto reader = make_string_reader("ab");
+    std::string s;
+    beaker a(atom('a'));
+    beaker b(atom('b'));
+    beaker ab = beaker::chain(std::move(a), std::move(b));
+    TEST_ASSERT(ab(reader, s));
 }
 
 // multi
@@ -144,7 +187,13 @@ void character_failed_over_test() {
 
 TEST_LIST = {
     // digit
-    {"digit_success_1_test",digit_success_1_test},
+    {"digit_success_dec_test", digit_success_dec_test},
+    {"digit_success_hex_test", digit_success_hex_test},
+    // beaker
+    {"beaker_success_empty", beaker_success_empty},
+    {"beaker_success_atom", beaker_success_atom},
+    {"beaker_success_option", beaker_success_option},
+    {"beaker_success_chain", beaker_success_chain},
     // multi
     {"multi_success_test", multi_success_test},
     {"multi_faield_0_test", multi_failed_0_test},

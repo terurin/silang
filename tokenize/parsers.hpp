@@ -23,18 +23,21 @@ template <class T = std::string> using parser_t = std::function<bool(reader_ptr 
 
 using match_t = std::bitset<256>;
 class atom {
-    match_t match;
+    match_t match; // if match is 0 then epsilon
 
 public:
+    atom() {}
     atom(char);
     atom(std::initializer_list<char>);
     atom(std::string_view);
     atom(const match_t &_match) : match(_match) {}
     atom(const atom &) = default;
+    bool is_epsilon() const { return match.none(); }
     const match_t get_match() const { return match; }
 
     bool operator()(reader_ptr &, char &) const;
     bool operator()(reader_ptr &, std::string &) const;
+    const static atom epsilon;
 };
 
 // 生成関係
@@ -43,14 +46,13 @@ static inline atom one(unsigned char c) { return atom(c); }
 static inline atom list(std::string_view sv) { return atom(sv); }
 
 inline atom any = range(0, 255);
-inline atom none({});
 atom operator+(const atom &, const atom &);
 atom operator-(const atom &, const atom &);
 
 // 記号
 const inline atom sign = atom("+-");
 const inline atom escape = atom({'\\'});
-const inline atom not_escape = any-escape;
+const inline atom not_escape = any - escape;
 atom digit(unsigned int n = 10);
 const inline atom small = range('a', 'z');
 const inline atom large = range('A', 'Z');
@@ -59,6 +61,45 @@ const inline atom alnum = small + large + digit();
 // 空白
 const inline auto newline = list("\r\n");
 const inline auto space = list(" \t\n\r");
+
+// 内部表現
+
+//
+struct instruction {
+    match_t match;
+    bool accept = false;
+    int color = 0;
+    instruction *success = nullptr;
+    instruction *next = nullptr;
+
+    instruction(match_t _match) : match(_match) {}
+    instruction(const instruction &) = default;
+
+    instruction &set_accept(bool _accept = true) { return accept = _accept, *this; }
+    instruction &set_color(int _color = true) { return color = color, *this; }
+    instruction &set_success(instruction *_success) { return success = _success, *this; }
+    instruction &set_next(instruction *_next) { return next = _next, *this; }
+    bool is_epsilon() const { return match.none(); }
+
+    std::optional<size_t> parse(reader_ptr &) const;
+};
+
+class beaker {
+    std::vector<instruction *> owners;
+    instruction *root = nullptr;
+
+public:
+    beaker(std::vector<instruction *> &&_owners, instruction *_root) : owners(_owners), root(_root) {}
+    beaker();
+    beaker(const atom &);
+    beaker(const beaker &) = delete;
+    beaker(beaker &&);
+    ~beaker();
+    bool operator()(reader_ptr &, std::string &);
+
+    static beaker option(beaker &&);
+    static beaker chain(beaker &&, beaker &&);
+};
 
 class multi {
     const std::string keyword;
