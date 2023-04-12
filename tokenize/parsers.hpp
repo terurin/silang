@@ -102,6 +102,8 @@ public:
     static beaker option(beaker &&);
     static beaker chain(beaker &&, beaker &&);
     static beaker text(std::string_view);
+    static beaker many0(beaker &&);
+    static beaker many1(beaker &&);
 };
 
 class multi_list {

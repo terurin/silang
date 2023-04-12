@@ -187,7 +187,8 @@ beaker beaker::option(beaker &&x) {
     std::swap(owners, x.owners);
 
     // insert
-    instruction *const inst = new instruction(atom::epsilon.get_match());
+    instruction *const inst = new instruction(atom::epsilon);
+    inst->set_accept();
     inst->next = x.root;
     owners.push_back(inst);
 
@@ -238,6 +239,56 @@ beaker beaker::text(std::string_view sv) {
     owners[0]->accept = true;
 
     return beaker(std::move(owners), last);
+}
+
+beaker beaker::many0(beaker &&base) {
+    std::vector<instruction *> owners;
+
+    std::swap(owners, base.owners);
+    owners.reserve(2 * owners.size()); // 最悪値
+    for (instruction *owner : owners) {
+        if (!owner->accept) continue;
+        if (!owner->success) {
+            owner->success = base.root;
+            continue;
+        }
+        // insert
+        instruction *insert = new instruction(*owner);
+        insert->set_accept(false);
+        insert->set_success(base.root);
+        insert->set_next(owner->next);
+        owner->next = insert;
+    }
+
+    instruction *root = new instruction(atom::epsilon);
+    root->set_accept();
+    root->next = base.root;
+    base.root = nullptr;
+    return beaker(std::move(owners), root);
+}
+
+beaker beaker::many1(beaker &&base) {
+    std::vector<instruction *> owners;
+
+    std::swap(owners, base.owners);
+    owners.reserve(2 * owners.size()); // 最悪値
+    for (instruction *owner : owners) {
+        if (!owner->accept) continue;
+        if (!owner->success) {
+            owner->success = base.root;
+            continue;
+        }
+        // insert
+        instruction *insert = new instruction(*owner);
+        insert->set_accept(false);
+        insert->set_success(base.root);
+        insert->set_next(owner->next);
+        owner->next = insert;
+    }
+
+    instruction *const root = base.root;
+    base.root = nullptr;
+    return beaker(std::move(owners), root);
 }
 
 static inline std::unordered_map<std::string, bool> table_from_keywords(const std::vector<std::string> &keywords) {
