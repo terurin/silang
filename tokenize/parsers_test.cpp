@@ -63,32 +63,6 @@ void beaker_success_text() {
     TEST_ASSERT(hello(reader, s));
 }
 
-// multi
-void multi_success_test() {
-    auto reader = make_string_reader("hello");
-    std::string s;
-    const auto p = reader->get_position();
-    TEST_ASSERT(multi("hello")(reader, s));
-    TEST_ASSERT(s == "hello");
-    TEST_ASSERT(reader->get_position() != p);
-}
-
-void multi_failed_0_test() {
-    auto reader = make_string_reader("hello");
-    std::string s;
-    const auto p = reader->get_position();
-    TEST_ASSERT(!multi("world")(reader, s));
-    TEST_ASSERT(reader->get_position() == p);
-}
-
-void multi_failed_1_test() {
-    auto reader = make_string_reader("hello");
-    std::string s;
-    const auto p = reader->get_position();
-    TEST_ASSERT(!multi("hola")(reader, s));
-    TEST_ASSERT(reader->get_position() != p);
-}
-
 // multi_list
 void multi_list_success_0_test() {
     auto parser = multi_list({"hello", "hola"});
@@ -203,10 +177,6 @@ TEST_LIST = {
     {"beaker_success_option", beaker_success_option},
     {"beaker_success_chain", beaker_success_chain},
     {"beaker_success_text", beaker_success_text},
-    // multi
-    {"multi_success_test", multi_success_test},
-    {"multi_faield_0_test", multi_failed_0_test},
-    {"multi_faield_1_test", multi_failed_1_test},
     // multi list
     {"multi_list_success_0_test", multi_list_success_0_test},
     {"multi_list_failed_0_test", multi_list_failed_0_test},

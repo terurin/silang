@@ -124,6 +124,8 @@ beaker::beaker(const atom &a) {
     root = inst;
 }
 
+beaker::beaker(const beaker &b) : beaker(std::move(b.clone())) {}
+
 beaker::~beaker() {
     for (auto &owner : owners) {
         delete owner;
@@ -153,6 +155,31 @@ bool beaker::operator()(reader_ptr &reader, std::string &out) {
 beaker::beaker(beaker &&origin) {
     std::swap(owners, origin.owners);
     std::swap(root, origin.root);
+}
+
+beaker beaker::clone() const {
+    assert(root);
+    std::vector<instruction *> freshes;
+    freshes.reserve(owners.size());
+    std::unordered_map<const instruction *, instruction *> table;
+
+    // allocate
+    for (const instruction *stale : owners) {
+        instruction *fresh = new instruction(*stale);
+        table[stale] = fresh;
+        freshes.push_back(fresh);
+    }
+
+    // convert pointer
+    for (instruction *fresh : freshes) {
+        if (fresh->next) {
+            fresh->next = table[fresh->next];
+        }
+        if (fresh->success) {
+            fresh->success = table[fresh->success];
+        }
+    }
+    return beaker(std::move(freshes), table[root]);
 }
 
 beaker beaker::option(beaker &&x) {
@@ -211,18 +238,6 @@ beaker beaker::text(std::string_view sv) {
     owners[0]->accept = true;
 
     return beaker(std::move(owners), last);
-}
-
-bool multi::operator()(reader_ptr &reader, std::string &s) const {
-    for (const char c : keyword) {
-        const auto peek = reader->peek();
-        if (!peek || *peek != c) {
-            return false;
-        }
-        reader->next(), s.push_back(*peek);
-    }
-
-    return true;
 }
 
 static inline std::unordered_map<std::string, bool> table_from_keywords(const std::vector<std::string> &keywords) {

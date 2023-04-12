@@ -93,22 +93,15 @@ public:
     beaker(std::vector<instruction *> &&_owners, instruction *_root) : owners(_owners), root(_root) {}
     beaker();
     beaker(const atom &);
-    beaker(const beaker &) = delete;
+    beaker(const beaker &); // 暫定対応、後々deleteに戻す
     beaker(beaker &&);
     ~beaker();
     bool operator()(reader_ptr &, std::string &);
 
+    beaker clone() const; // O(n)
     static beaker option(beaker &&);
     static beaker chain(beaker &&, beaker &&);
     static beaker text(std::string_view);
-};
-
-class multi {
-    const std::string keyword;
-
-public:
-    multi(std::string_view sv) : keyword(sv) {}
-    bool operator()(reader_ptr &, std::string &) const;
 };
 
 class multi_list {
@@ -199,19 +192,21 @@ bool nop(reader_ptr &, std::string &);
 
 // integer
 const inline auto integer =
-    option(sign) *
-    (attempt<std::string>(multi("0b") * escaped_digits(2)) + attempt<std::string>(multi("0q") * escaped_digits(4)) +
-     attempt<std::string>(multi("0o") * escaped_digits(8)) + attempt<std::string>(multi("0d") * escaped_digits(10)) +
-     attempt<std::string>(multi("0x") * escaped_digits(16)) + escaped_digits(10));
+    option(sign) * (attempt<std::string>(beaker::text("0b") * escaped_digits(2)) +
+                    attempt<std::string>(beaker::text("0q") * escaped_digits(4)) +
+                    attempt<std::string>(beaker::text("0o") * escaped_digits(8)) +
+                    attempt<std::string>(beaker::text("0d") * escaped_digits(10)) +
+                    attempt<std::string>(beaker::text("0x") * escaped_digits(16)) + escaped_digits(10));
 
 // real
 const inline auto dot = one('.');
 const inline auto mantissa_digits(unsigned int n) { return escaped_digits(n) * dot * escaped_digits(n); }
 const inline auto mantissa =
-    option(sign) *
-    (attempt<std::string>(multi("0b") * mantissa_digits(2)) + attempt<std::string>(multi("0q") * mantissa_digits(4)) +
-     attempt<std::string>(multi("0o") * mantissa_digits(8)) + attempt<std::string>(multi("0d") * mantissa_digits(10)) +
-     attempt<std::string>(multi("0x") * mantissa_digits(16)) + mantissa_digits(10));
+    option(sign) * (attempt<std::string>(beaker::text("0b") * mantissa_digits(2)) +
+                    attempt<std::string>(beaker::text("0q") * mantissa_digits(4)) +
+                    attempt<std::string>(beaker::text("0o") * mantissa_digits(8)) +
+                    attempt<std::string>(beaker::text("0d") * mantissa_digits(10)) +
+                    attempt<std::string>(beaker::text("0x") * mantissa_digits(16)) + mantissa_digits(10));
 const inline auto exponent = list("eE") * option(sign) * escaped_digits(10);
 const inline auto real = mantissa * option(exponent);
 
@@ -220,11 +215,11 @@ const inline auto boolean = multi_list({"true", "false"});
 
 // atoms(others)
 const inline auto text =
-    attempt<std::string>(bracket(multi("\"\"\""), escaped_char, attempt<std::string>(multi("\"\"\"")))) +
+    attempt<std::string>(bracket(beaker::text("\"\"\""), escaped_char, attempt<std::string>(beaker::text("\"\"\"")))) +
     bracket(one('"'), escaped_char, one('"'));
 
-const inline auto comment = attempt<std::string>(bracket(multi("//"), any, newline + eof)) +
-                            bracket(multi("/*"), any, attempt<std::string>(multi("*/")));
+const inline auto comment = attempt<std::string>(bracket(beaker::text("//"), any, newline + eof)) +
+                            bracket(beaker::text("/*"), any, attempt<std::string>(beaker::text("*/")));
 const inline auto variable = (alpha + one('_')) * many0(alnum + one('_'));
 const inline auto character = one('\'') * escaped_char * one('\'');
 } // namespace tokenize::parsers
