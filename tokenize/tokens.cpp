@@ -171,7 +171,7 @@ bool tokenize(reader_ptr &reader, token &t) {
     using namespace parsers;
     std::string s;
 
-    many0(spaces + comment)(reader, s);
+    many0(spaces() + comment)(reader, s);
 
     // operation
     if (attempt<token>(types)(reader, t)) {

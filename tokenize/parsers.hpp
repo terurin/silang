@@ -107,6 +107,18 @@ public:
     static beaker sum(beaker &&, beaker &&);
 };
 
+// 整数関係
+beaker escaped_digits(unsigned int n = 10);
+beaker escaped_char();
+beaker spaces();
+
+// alias
+//static inline beaker option(beaker &&x) { return beaker::option(std::move(x)); }
+//static inline beaker chain(beaker &&x, beaker &&y) { return beaker::chain(std::move(x), std::move(y)); }
+//static inline beaker text(std::string_view sv) { return beaker::text(sv); }
+//static inline beaker many0(beaker &&x) { return beaker::many0(std::move(x)); }
+//static inline beaker many1(beaker &&x) { return beaker::many1(std::move(x)); }
+
 class multi_list {
     const std::unordered_map<std::string, bool> table; // true -> tail, false -> continue, null -> mismatch
 
@@ -138,10 +150,6 @@ public:
 static inline repeat_range many0(const parser_t<std::string> &parser) { return repeat_range(parser, 0); }
 static inline repeat_range many1(const parser_t<std::string> &parser) { return repeat_range(parser, 1); }
 static inline repeat_range option(const parser_t<std::string> &parser) { return repeat_range(parser, 0, 1); }
-
-static inline repeat_range repeat(const parser_t<std::string> &parser, unsigned int n) {
-    return repeat_range(parser, n, n);
-}
 
 template <class T> class attempt {
     const parser_t<T> parser;
@@ -177,18 +185,6 @@ public:
 
 // token series
 
-// 整数関係
-
-static inline auto escaped_digits(unsigned int n = 10) {
-    return many1(digit(n)) * many0(attempt<std::string>(many1(one('_')) * many1(digit(n))));
-}
-
-// アルファベット
-
-const inline auto escaped_char = not_escape + one('\\') * any;
-
-const inline auto spaces = many1(space);
-
 // 特殊
 bool eof(reader_ptr &, std::string &);
 bool nop(reader_ptr &, std::string &);
@@ -217,14 +213,14 @@ const inline auto real = mantissa * option(exponent);
 const inline auto boolean = multi_list({"true", "false"});
 
 // atoms(others)
-const inline auto text =
-    attempt<std::string>(bracket(beaker::text("\"\"\""), escaped_char, attempt<std::string>(beaker::text("\"\"\"")))) +
-    bracket(one('"'), escaped_char, one('"'));
+const inline auto text = attempt<std::string>(bracket(beaker::text("\"\"\""), escaped_char(),
+                                                      attempt<std::string>(beaker::text("\"\"\"")))) +
+                         bracket(one('"'), escaped_char(), one('"'));
 
 const inline auto comment = attempt<std::string>(bracket(beaker::text("//"), any, newline + eof)) +
                             bracket(beaker::text("/*"), any, attempt<std::string>(beaker::text("*/")));
 const inline auto variable = (alpha + one('_')) * many0(alnum + one('_'));
-const inline auto character = one('\'') * escaped_char * one('\'');
+const inline auto character = one('\'') * escaped_char() * one('\'');
 } // namespace tokenize::parsers
 
 #include "parsers.cxx"

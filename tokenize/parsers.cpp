@@ -152,9 +152,10 @@ bool beaker::operator()(reader_ptr &reader, std::string &out) {
     return true;
 }
 
-beaker::beaker(beaker &&origin) {
-    std::swap(owners, origin.owners);
-    std::swap(root, origin.root);
+beaker::beaker(beaker &&origin) : owners(std::move(origin.owners)), root(origin.root) {
+    origin.owners.clear();
+    origin.root = nullptr;
+    assert(root);
 }
 
 beaker beaker::clone() const {
@@ -179,7 +180,9 @@ beaker beaker::clone() const {
             fresh->success = table[fresh->success];
         }
     }
-    return beaker(std::move(freshes), table[root]);
+    instruction *const table_root = table[root];
+    assert(table_root);
+    return beaker(std::move(freshes), table_root);
 }
 
 beaker beaker::option(beaker &&x) {
@@ -263,6 +266,7 @@ beaker beaker::many0(beaker &&base) {
     instruction *root = new instruction(atom::epsilon);
     root->set_accept();
     root->next = base.root;
+    owners.push_back(root);
     base.root = nullptr;
     return beaker(std::move(owners), root);
 }
@@ -300,19 +304,27 @@ beaker beaker::sum(beaker &&x, beaker &&y) {
 
     instruction *root = x.root;
 
-    // merge
-    // TODO: 重複を削除する機能を追加する
+    // simple merge
     instruction *last = root;
     for (instruction *iter = root->next; iter != nullptr; iter = iter->next) {
-        last=iter;
+        last = iter;
     }
-    last->next= y.root;
+    last->next = y.root;
 
     y.owners.clear();
     y.root = nullptr;
 
     return beaker(std::move(owners), root);
 }
+
+beaker escaped_digits(unsigned int n) {
+    return beaker::chain(
+        beaker::many1(beaker(digit(n))),
+        beaker::many0(beaker::chain(beaker::many1(beaker(atom('_'))), beaker::many1(beaker(digit(n))))));
+}
+
+beaker escaped_char() { return beaker::sum(beaker(not_escape), beaker::chain(beaker(escape), beaker(any))); }
+beaker spaces() { return beaker::many0(beaker(space)); }
 
 static inline std::unordered_map<std::string, bool> table_from_keywords(const std::vector<std::string> &keywords) {
     std::unordered_map<std::string, bool> table;
