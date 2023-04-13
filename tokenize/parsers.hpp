@@ -34,6 +34,7 @@ public:
     atom(const atom &) = default;
     atom(atom &&) = default;
     bool is_epsilon() const { return match.none(); }
+    bool is_all() const { return match.all(); }
     const match_t get_match() const { return match; }
 
     bool operator()(reader_ptr &, char &) const;
@@ -41,6 +42,8 @@ public:
     const static atom epsilon;
     bool test(unsigned char x) const { return match.test(x); }
 };
+
+std::ostream &operator<<(std::ostream &, const atom &);
 
 // 生成関係
 atom range(unsigned char first, unsigned char last);
@@ -78,6 +81,7 @@ struct flask {
     flask(match_t _match) : inner(_match) {}
     flask(const flask &) = default;
 
+    const atom &get_atom() const { return inner; }
     flask &set_accept(bool _accept = true) { return accept = _accept, *this; }
     flask &set_color(int _color = true) { return color = color, *this; }
     flask &set_success(flask *_success) { return success = _success, *this; }
@@ -92,7 +96,7 @@ class beaker {
     flask *root = nullptr;
 
 public:
-    beaker(std::vector<flask *> &&_owners, flask *_root) ;
+    beaker(std::vector<flask *> &&_owners, flask *_root);
     beaker();
     beaker(const atom &);
     beaker(const beaker &); // 暫定対応、後々deleteに戻す
@@ -101,12 +105,15 @@ public:
     bool operator()(reader_ptr &, std::string &);
 
     beaker clone() const; // O(n)
-    beaker& optionize();
+    beaker &optionize();
     static beaker chain(beaker &&, beaker &&);
     static beaker text(std::string_view);
     static beaker many0(beaker &&);
     static beaker many1(beaker &&);
     static beaker sum(beaker &&, beaker &&);
+
+private:
+    bool verify_ownership() const;
 };
 
 // 整数関係

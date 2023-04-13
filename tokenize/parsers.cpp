@@ -46,6 +46,25 @@ bool atom::operator()(reader_ptr &reader, std::string &s) const {
 
 const atom atom::epsilon;
 
+std::ostream &operator<<(std::ostream &os, const atom &a) {
+    if (a.is_all()) {
+        return os << "all";
+    }
+
+    if (a.is_epsilon()) {
+        return os << "epsilon";
+    }
+
+    os << "[";
+    for (char i = 0; i < 256; i++) {
+        if (a.test(i)) {
+            os << i;
+        }
+    }
+    os << "]";
+    return os;
+}
+
 atom range(unsigned char first, unsigned char last) {
     match_t m;
     assert(first <= last);
@@ -109,7 +128,9 @@ std::optional<size_t> flask::parse(reader_ptr &reader) const {
     return result;
 }
 
-beaker::beaker(std::vector<flask *> &&_owners, flask *_root) : owners(_owners), root(_root) { assert(root); }
+beaker::beaker(std::vector<flask *> &&_owners, flask *_root) : owners(_owners), root(_root) {
+    assert(verify_ownership());
+}
 
 beaker::beaker() {
     flask *const inst = new flask(atom::epsilon);
@@ -126,7 +147,7 @@ beaker::beaker(const atom &a) {
     root = inst;
 }
 
-beaker::beaker(const beaker &b) : beaker(std::move(b.clone())) { assert(root); }
+beaker::beaker(const beaker &b) : beaker(std::move(b.clone())) { assert(verify_ownership()); }
 
 beaker::~beaker() {
     for (auto &owner : owners) {
@@ -187,7 +208,6 @@ beaker beaker::clone() const {
     return beaker(std::move(freshes), table_root);
 }
 
-
 beaker &beaker::optionize() {
     // insert
     flask *const f = new flask(atom::epsilon);
@@ -244,6 +264,7 @@ beaker beaker::text(std::string_view sv) {
 }
 
 beaker beaker::many0(beaker &&base) {
+    assert(base.verify_ownership());
     std::vector<flask *> owners;
 
     std::swap(owners, base.owners);
@@ -260,17 +281,19 @@ beaker beaker::many0(beaker &&base) {
         insert->set_success(base.root);
         insert->set_next(owner->next);
         owner->next = insert;
+        owners.push_back(insert);
     }
 
-    flask *root = new flask(atom::epsilon);
-    root->set_accept();
-    root->next = base.root;
-    owners.push_back(root);
+    flask *first = new flask(atom::epsilon);
+    first->set_accept();
+    first->next = base.root;
+    owners.push_back(first);
     base.root = nullptr;
-    return beaker(std::move(owners), root);
+    return beaker(std::move(owners), first);
 }
 
 beaker beaker::many1(beaker &&base) {
+    assert(base.verify_ownership());
     std::vector<flask *> owners;
 
     std::swap(owners, base.owners);
@@ -287,6 +310,7 @@ beaker beaker::many1(beaker &&base) {
         insert->set_success(base.root);
         insert->set_next(owner->next);
         owner->next = insert;
+        owners.push_back(insert);
     }
 
     flask *const root = base.root;
@@ -295,6 +319,8 @@ beaker beaker::many1(beaker &&base) {
 }
 
 beaker beaker::sum(beaker &&x, beaker &&y) {
+    assert(x.verify_ownership());
+    assert(y.verify_ownership());
     std::vector<flask *> owners;
     // transfer ownerships
     std::swap(owners, x.owners);
@@ -314,6 +340,33 @@ beaker beaker::sum(beaker &&x, beaker &&y) {
     y.root = nullptr;
 
     return beaker(std::move(owners), root);
+}
+
+bool beaker::verify_ownership() const {
+    using namespace std;
+    std::unordered_set<const flask *> set(owners.begin(), owners.end());
+
+    if (!root) {
+        cerr << "root is nullptr" << endl;
+        return false;
+    }
+    if (!set.contains(root)) {
+        cerr << "root is bad" << endl;
+        return false;
+    }
+    for (const flask *f : owners) {
+        if (f->next && !set.contains(f->next)) {
+            cerr << "next is bad" << endl;
+            cerr << "hint: " << f->get_atom() << endl;
+            return false;
+        }
+        if (f->success && !set.contains(f->success)) {
+            cerr << "success is bad" << endl;
+            cerr << "hint: " << f->get_atom() << endl;
+            return false;
+        }
+    }
+    return true;
 }
 
 beaker escaped_digits(unsigned int n) {
