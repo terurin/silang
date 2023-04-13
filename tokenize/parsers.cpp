@@ -75,7 +75,7 @@ atom digit(unsigned int base) {
     return atom(m);
 }
 
-std::optional<size_t> instruction::parse(reader_ptr &reader) const {
+std::optional<size_t> flask::parse(reader_ptr &reader) const {
     using std::nullopt;
 
     std::optional<size_t> result = nullopt;
@@ -88,10 +88,10 @@ std::optional<size_t> instruction::parse(reader_ptr &reader) const {
         return result;
     }
 
-    if (match.test(*peek) && accept) {
+    if (inner.test(*peek) && accept) {
         result = 1;
     }
-    if (match.test(*peek) && success) {
+    if (inner.test(*peek) && success) {
         const auto position = reader->get_position();
         reader->next();
         if (const auto read = success->parse(reader); read) {
@@ -109,15 +109,17 @@ std::optional<size_t> instruction::parse(reader_ptr &reader) const {
     return result;
 }
 
+beaker::beaker(std::vector<flask *> &&_owners, flask *_root) : owners(_owners), root(_root) { assert(root); }
+
 beaker::beaker() {
-    instruction *const inst = new instruction(atom::epsilon);
+    flask *const inst = new flask(atom::epsilon);
     inst->set_accept();
     owners.push_back(inst);
     root = inst;
 }
 
 beaker::beaker(const atom &a) {
-    instruction *const inst = new instruction(a);
+    flask *const inst = new flask(a);
     inst->set_accept();
 
     owners.push_back(inst);
@@ -160,19 +162,19 @@ beaker::beaker(beaker &&origin) : owners(std::move(origin.owners)), root(origin.
 
 beaker beaker::clone() const {
     assert(root);
-    std::vector<instruction *> freshes;
+    std::vector<flask *> freshes;
     freshes.reserve(owners.size());
-    std::unordered_map<const instruction *, instruction *> table;
+    std::unordered_map<const flask *, flask *> table;
 
     // allocate
-    for (const instruction *stale : owners) {
-        instruction *fresh = new instruction(*stale);
+    for (const flask *stale : owners) {
+        flask *fresh = new flask(*stale);
         table[stale] = fresh;
         freshes.push_back(fresh);
     }
 
     // convert pointer
-    for (instruction *fresh : freshes) {
+    for (flask *fresh : freshes) {
         if (fresh->next) {
             fresh->next = table[fresh->next];
         }
@@ -180,17 +182,17 @@ beaker beaker::clone() const {
             fresh->success = table[fresh->success];
         }
     }
-    instruction *const table_root = table[root];
+    flask *const table_root = table[root];
     assert(table_root);
     return beaker(std::move(freshes), table_root);
 }
 
 beaker beaker::option(beaker &&x) {
-    std::vector<instruction *> owners;
+    std::vector<flask *> owners;
     std::swap(owners, x.owners);
 
     // insert
-    instruction *const inst = new instruction(atom::epsilon);
+    flask *const inst = new flask(atom::epsilon);
     inst->set_accept();
     inst->next = x.root;
     owners.push_back(inst);
@@ -199,11 +201,11 @@ beaker beaker::option(beaker &&x) {
 }
 
 beaker beaker::chain(beaker &&x, beaker &&y) {
-    std::vector<instruction *> owners;
+    std::vector<flask *> owners;
     owners.reserve(2 * x.owners.size() + y.owners.size());
 
     // xで受理できるものをyのrootに変更する
-    for (instruction *inst : x.owners) {
+    for (flask *inst : x.owners) {
         if (!inst->accept) continue;
         inst->accept = false;
         if (!inst->success) {
@@ -212,13 +214,13 @@ beaker beaker::chain(beaker &&x, beaker &&y) {
         }
 
         // insert
-        instruction *const inst2 = new instruction(*inst); // copy
+        flask *const inst2 = new flask(*inst); // copy
         inst->next = inst2;
         inst2->success = y.root;
         owners.push_back(inst2);
     }
     // transfer ownerships
-    instruction *root = x.root;
+    flask *root = x.root;
     std::copy(x.owners.begin(), x.owners.end(), std::back_inserter(owners));
     std::copy(y.owners.begin(), y.owners.end(), std::back_inserter(owners));
     x.owners.clear(), x.root = nullptr;
@@ -229,12 +231,12 @@ beaker beaker::chain(beaker &&x, beaker &&y) {
 
 beaker beaker::text(std::string_view sv) {
     assert(sv.length() > 0);
-    std::vector<instruction *> owners;
+    std::vector<flask *> owners;
     owners.reserve(sv.length());
 
-    instruction *last = nullptr;
+    flask *last = nullptr;
     for (auto iter = sv.rbegin(); iter != sv.rend(); iter++) {
-        instruction *now = new instruction(atom(*iter));
+        flask *now = new flask(atom(*iter));
         now->set_success(last);
         owners.push_back(now);
         last = now;
@@ -245,25 +247,25 @@ beaker beaker::text(std::string_view sv) {
 }
 
 beaker beaker::many0(beaker &&base) {
-    std::vector<instruction *> owners;
+    std::vector<flask *> owners;
 
     std::swap(owners, base.owners);
     owners.reserve(2 * owners.size()); // 最悪値
-    for (instruction *owner : owners) {
+    for (flask *owner : owners) {
         if (!owner->accept) continue;
         if (!owner->success) {
             owner->success = base.root;
             continue;
         }
         // insert
-        instruction *insert = new instruction(*owner);
+        flask *insert = new flask(*owner);
         insert->set_accept(false);
         insert->set_success(base.root);
         insert->set_next(owner->next);
         owner->next = insert;
     }
 
-    instruction *root = new instruction(atom::epsilon);
+    flask *root = new flask(atom::epsilon);
     root->set_accept();
     root->next = base.root;
     owners.push_back(root);
@@ -272,41 +274,41 @@ beaker beaker::many0(beaker &&base) {
 }
 
 beaker beaker::many1(beaker &&base) {
-    std::vector<instruction *> owners;
+    std::vector<flask *> owners;
 
     std::swap(owners, base.owners);
     owners.reserve(2 * owners.size()); // 最悪値
-    for (instruction *owner : owners) {
+    for (flask *owner : owners) {
         if (!owner->accept) continue;
         if (!owner->success) {
             owner->success = base.root;
             continue;
         }
         // insert
-        instruction *insert = new instruction(*owner);
+        flask *insert = new flask(*owner);
         insert->set_accept(false);
         insert->set_success(base.root);
         insert->set_next(owner->next);
         owner->next = insert;
     }
 
-    instruction *const root = base.root;
+    flask *const root = base.root;
     base.root = nullptr;
     return beaker(std::move(owners), root);
 }
 
 beaker beaker::sum(beaker &&x, beaker &&y) {
-    std::vector<instruction *> owners;
+    std::vector<flask *> owners;
     // transfer ownerships
     std::swap(owners, x.owners);
     owners.reserve(owners.size() + y.owners.size());
     std::copy(y.owners.begin(), y.owners.end(), std::back_inserter(owners));
 
-    instruction *root = x.root;
+    flask *root = x.root;
 
     // simple merge
-    instruction *last = root;
-    for (instruction *iter = root->next; iter != nullptr; iter = iter->next) {
+    flask *last = root;
+    for (flask *iter = root->next; iter != nullptr; iter = iter->next) {
         last = iter;
     }
     last->next = y.root;

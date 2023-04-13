@@ -32,12 +32,14 @@ public:
     atom(std::string_view);
     atom(const match_t &_match) : match(_match) {}
     atom(const atom &) = default;
+    atom(atom &&) = default;
     bool is_epsilon() const { return match.none(); }
     const match_t get_match() const { return match; }
 
     bool operator()(reader_ptr &, char &) const;
     bool operator()(reader_ptr &, std::string &) const;
     const static atom epsilon;
+    bool test(unsigned char x) const { return match.test(x); }
 };
 
 // 生成関係
@@ -65,32 +67,32 @@ const inline auto space = list(" \t\n\r");
 // 内部表現
 
 //
-struct instruction {
-    match_t match;
+struct flask {
+    atom inner;
     bool accept = false;
     int color = 0;
-    instruction *success = nullptr;
-    instruction *next = nullptr;
+    flask *success = nullptr;
+    flask *next = nullptr;
 
-    instruction(const atom &_atom) : match(_atom.get_match()) {}
-    instruction(match_t _match) : match(_match) {}
-    instruction(const instruction &) = default;
+    flask(const atom &_inner) : inner(_inner) {}
+    flask(match_t _match) : inner(_match) {}
+    flask(const flask &) = default;
 
-    instruction &set_accept(bool _accept = true) { return accept = _accept, *this; }
-    instruction &set_color(int _color = true) { return color = color, *this; }
-    instruction &set_success(instruction *_success) { return success = _success, *this; }
-    instruction &set_next(instruction *_next) { return next = _next, *this; }
-    bool is_epsilon() const { return match.none(); }
+    flask &set_accept(bool _accept = true) { return accept = _accept, *this; }
+    flask &set_color(int _color = true) { return color = color, *this; }
+    flask &set_success(flask *_success) { return success = _success, *this; }
+    flask &set_next(flask *_next) { return next = _next, *this; }
+    bool is_epsilon() const { return inner.is_epsilon(); }
 
     std::optional<size_t> parse(reader_ptr &) const;
 };
 
 class beaker {
-    std::vector<instruction *> owners;
-    instruction *root = nullptr;
+    std::vector<flask *> owners;
+    flask *root = nullptr;
 
 public:
-    beaker(std::vector<instruction *> &&_owners, instruction *_root) : owners(_owners), root(_root) {}
+    beaker(std::vector<flask *> &&_owners, flask *_root) ;
     beaker();
     beaker(const atom &);
     beaker(const beaker &); // 暫定対応、後々deleteに戻す
@@ -113,11 +115,11 @@ beaker escaped_char();
 beaker spaces();
 
 // alias
-//static inline beaker option(beaker &&x) { return beaker::option(std::move(x)); }
-//static inline beaker chain(beaker &&x, beaker &&y) { return beaker::chain(std::move(x), std::move(y)); }
-//static inline beaker text(std::string_view sv) { return beaker::text(sv); }
-//static inline beaker many0(beaker &&x) { return beaker::many0(std::move(x)); }
-//static inline beaker many1(beaker &&x) { return beaker::many1(std::move(x)); }
+// static inline beaker option(beaker &&x) { return beaker::option(std::move(x)); }
+// static inline beaker chain(beaker &&x, beaker &&y) { return beaker::chain(std::move(x), std::move(y)); }
+// static inline beaker text(std::string_view sv) { return beaker::text(sv); }
+// static inline beaker many0(beaker &&x) { return beaker::many0(std::move(x)); }
+// static inline beaker many1(beaker &&x) { return beaker::many1(std::move(x)); }
 
 class multi_list {
     const std::unordered_map<std::string, bool> table; // true -> tail, false -> continue, null -> mismatch
