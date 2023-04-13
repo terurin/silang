@@ -101,7 +101,7 @@ public:
     bool operator()(reader_ptr &, std::string &);
 
     beaker clone() const; // O(n)
-    static beaker option(beaker &&);
+    beaker& optionize();
     static beaker chain(beaker &&, beaker &&);
     static beaker text(std::string_view);
     static beaker many0(beaker &&);

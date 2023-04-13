@@ -34,8 +34,7 @@ void beaker_success_atom() {
 void beaker_success_option() {
 
     std::string s;
-    beaker a(atom('a'));
-    beaker opt_a = beaker::option(std::move(a));
+    beaker opt_a = beaker(atom('a')).optionize();
     {
         auto reader = make_string_reader("");
         TEST_ASSERT(opt_a(reader, s));

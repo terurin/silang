@@ -126,7 +126,7 @@ beaker::beaker(const atom &a) {
     root = inst;
 }
 
-beaker::beaker(const beaker &b) : beaker(std::move(b.clone())) {}
+beaker::beaker(const beaker &b) : beaker(std::move(b.clone())) { assert(root); }
 
 beaker::~beaker() {
     for (auto &owner : owners) {
@@ -187,17 +187,14 @@ beaker beaker::clone() const {
     return beaker(std::move(freshes), table_root);
 }
 
-beaker beaker::option(beaker &&x) {
-    std::vector<flask *> owners;
-    std::swap(owners, x.owners);
 
+beaker &beaker::optionize() {
     // insert
-    flask *const inst = new flask(atom::epsilon);
-    inst->set_accept();
-    inst->next = x.root;
-    owners.push_back(inst);
-
-    return beaker(std::move(owners), inst);
+    flask *const f = new flask(atom::epsilon);
+    f->set_accept();
+    f->next = root, root = f; // link
+    owners.push_back(f);
+    return *this;
 }
 
 beaker beaker::chain(beaker &&x, beaker &&y) {
