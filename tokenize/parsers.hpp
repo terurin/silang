@@ -76,16 +76,15 @@ public:
     bool operator()(reader_ptr &, std::string &) const;
 };
 
-class chain {
-    const parser_t<std::string> right;
-    const parser_t<std::string> left;
+template <class R, class L> class chain {
+    const R right;
+    const L left;
 
 public:
-    chain(const parser_t<std::string> &_right, const parser_t<std::string> &_left) : right(_right), left(_left) {}
+    chain(const R &_right, const L &_left) : right(_right), left(_left) {}
     bool operator()(reader_ptr &, std::string &) const;
 };
-
-static inline chain operator*(const parser_t<std::string> &r, const parser_t<std::string> &l) { return chain(r, l); }
+template <class R, class L> static inline auto operator*(const R &r, const L &l) { return chain(r, l); }
 
 template <class T> class repeat_range {
     const T parser;

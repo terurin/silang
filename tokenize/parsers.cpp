@@ -145,14 +145,7 @@ bool multi_list::operator()(reader_ptr &reader, std::string &s) const {
     return false;
 }
 
-bool chain::operator()(reader_ptr &reader, std::string &s) const {
 
-    if (!right(reader, s)) {
-        return false;
-    }
-
-    return left(reader, s);
-}
 
 
 bool bracket::operator()(reader_ptr &reader, std::string &out) const {
