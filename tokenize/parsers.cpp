@@ -154,39 +154,6 @@ bool chain::operator()(reader_ptr &reader, std::string &s) const {
     return left(reader, s);
 }
 
-repeat_range::repeat_range(const parser_t<std::string> &_parser, unsigned int _min, unsigned int _max)
-    : parser(_parser), min(_min), max(_max) {
-    assert(min <= max);
-}
-
-bool repeat_range::operator()(reader_ptr &reader, std::string &s) const {
-    int count = 0;
-
-    // min
-    {
-        const position pos = reader->get_position();
-        for (; count < min; count++) {
-            if (!parser(reader, s)) {
-                if (pos != reader->get_position()) {
-                    std::cerr << "overrun (repeat min)" << std::endl;
-                }
-                return false;
-            }
-        }
-    }
-
-    // ~max
-    for (; count < max; count++) {
-        const position pos = reader->get_position();
-        if (!parser(reader, s)) {
-            if (pos != reader->get_position()) {
-                std::cerr << "overrun (repeat max)" << std::endl;
-            }
-            return true;
-        }
-    }
-    return true;
-}
 
 bool bracket::operator()(reader_ptr &reader, std::string &out) const {
     if (!begin(reader, out)) {

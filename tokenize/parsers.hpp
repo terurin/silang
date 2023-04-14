@@ -50,7 +50,7 @@ atom operator-(const atom &, const atom &);
 // 記号
 const inline atom sign = atom("+-");
 const inline atom escape = atom({'\\'});
-const inline atom not_escape = any-escape;
+const inline atom not_escape = any - escape;
 atom digit(unsigned int n = 10);
 const inline atom small = range('a', 'z');
 const inline atom large = range('A', 'Z');
@@ -87,22 +87,19 @@ public:
 
 static inline chain operator*(const parser_t<std::string> &r, const parser_t<std::string> &l) { return chain(r, l); }
 
-class repeat_range {
-    const parser_t<std::string> parser;
+template <class T> class repeat_range {
+    const T parser;
     const unsigned int min, max;
 
 public:
-    repeat_range(const parser_t<std::string> &_parser, unsigned int _min = 0, unsigned int _max = UINT_MAX);
+    repeat_range(const T &_parser, unsigned int _min = 0, unsigned int _max = UINT_MAX);
     bool operator()(reader_ptr &, std::string &) const;
 };
 
-static inline repeat_range many0(const parser_t<std::string> &parser) { return repeat_range(parser, 0); }
-static inline repeat_range many1(const parser_t<std::string> &parser) { return repeat_range(parser, 1); }
-static inline repeat_range option(const parser_t<std::string> &parser) { return repeat_range(parser, 0, 1); }
-
-static inline repeat_range repeat(const parser_t<std::string> &parser, unsigned int n) {
-    return repeat_range(parser, n, n);
-}
+template <class T> static inline auto many0(const T &parser) { return repeat_range(parser, 0); }
+template <class T> static inline auto many1(const T &parser) { return repeat_range(parser, 1); }
+template <class T> static inline auto option(const T &parser) { return repeat_range(parser, 0, 1); }
+template <class T> static inline auto repeat(const T &parser, unsigned int n) { return repeat_range(parser, n, n); }
 
 template <class T> class attempt {
     const parser_t<T> parser;
