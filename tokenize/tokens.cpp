@@ -174,32 +174,32 @@ bool tokenize(reader_ptr &reader, token &t) {
     many0(spaces + comment)(reader, s);
 
     // operation
-    if (attempt<token>(types)(reader, t)) {
+    if (attempt(types)(reader, t)) {
         return true;
     }
-    if (attempt<token>(operations)(reader, t)) {
+    if (attempt(operations)(reader, t)) {
         return true;
     }
 
     // [digit]
-    if (attempt<token>(tokener(token_id::real, real))(reader, t)) {
+    if (attempt(tokener(token_id::real, real))(reader, t)) {
         return true;
     }
 
-    if (attempt<token>(tokener(token_id::boolean, boolean))(reader, t)) {
+    if (attempt(tokener(token_id::boolean, boolean))(reader, t)) {
         return true;
     }
 
-    if (attempt<token>(tokener(token_id::integer, integer))(reader, t)) {
+    if (attempt(tokener(token_id::integer, integer))(reader, t)) {
         return true;
     }
 
     // "
-    if (attempt<token>(tokener(token_id::text, text))(reader, t)) {
+    if (attempt(tokener(token_id::text, text))(reader, t)) {
         return true;
     }
     // '
-    if (attempt<token>(tokener(token_id::character, character))(reader, t)) {
+    if (attempt(tokener(token_id::character, character))(reader, t)) {
         return true;
     }
 
