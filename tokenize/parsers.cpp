@@ -135,22 +135,6 @@ bool multi_list::operator()(reader_ptr &reader, std::string &s) const {
     return false;
 }
 
-
-
-
-bool bracket::operator()(reader_ptr &reader, std::string &out) const {
-    if (!begin(reader, out)) {
-        return false;
-    }
-    do {
-        if (end(reader, out)) {
-            return true;
-        }
-    } while (body(reader, out));
-
-    return false;
-}
-
 bool eof(reader_ptr &reader, std::string &s) { return !reader->peek(); }
 bool nop(reader_ptr &reader, std::string &s) { return true; }
 

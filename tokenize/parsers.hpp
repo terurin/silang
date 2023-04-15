@@ -129,14 +129,13 @@ public:
     bool operator()(reader_ptr &, T &) const;
 };
 
-class bracket {
-    const parser_t<std::string> begin;
-    const parser_t<std::string> body;
-    const parser_t<std::string> end;
+template <parser B, parser I, parser E> class bracket {
+    const B begin;
+    const I inner;
+    const E end;
 
 public:
-    bracket(const parser_t<std::string> _begin, const parser_t<std::string> _body, const parser_t<std::string> _end)
-        : begin(_begin), body(_body), end(_end) {}
+    bracket(const B &_begin, const I &_inner, const E &_end) : begin(_begin), inner(_inner), end(_end) {}
     bool operator()(reader_ptr &, std::string &) const;
 };
 

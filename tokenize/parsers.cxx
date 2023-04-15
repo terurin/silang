@@ -92,4 +92,18 @@ template <class T> bool sigma<T>::operator()(reader_ptr &reader, T &out) const {
 
     return false;
 }
+
+template <parser B, parser I, parser E> bool bracket<B, I, E>::operator()(reader_ptr &reader, std::string &out) const {
+    if (!begin(reader, out)) {
+        return false;
+    }
+    do {
+        if (end(reader, out)) {
+            return true;
+        }
+    } while (inner(reader, out));
+
+    return false;
+}
+
 } // namespace tokenize::parsers
