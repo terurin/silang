@@ -122,6 +122,7 @@ std::ostream &operator<<(std::ostream &os, const token &t) { return os << t.id <
 token_table::token_table(const std::unordered_map<std::string, token_id> &_table)
     : table(_table), list([](const std::unordered_map<std::string, token_id> &ts) {
           std::vector<std::string> ks;
+          ks.reserve(ts.size());
           for (const auto &[key, value] : ts) {
               ks.push_back(key);
           }
@@ -188,12 +189,12 @@ bool tokenize(reader_ptr &reader, token &t) {
 }
 
 bool tokenize_all(reader_ptr &reader, std::vector<token> &ts) {
-    token t;
     do {
+        token t;
         if (!tokenize(reader, t)) {
             break;
         }
-        ts.push_back(t);
+        ts.emplace_back(std::move(t));
     } while (1);
     return true;
 }

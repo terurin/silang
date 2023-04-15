@@ -33,7 +33,6 @@ public:
     atom(const atom &) = default;
     const match_t get_match() const { return match; }
 
-    bool operator()(reader_ptr &, char &) const;
     bool operator()(reader_ptr &, std::string &) const;
 };
 

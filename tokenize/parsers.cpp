@@ -19,16 +19,6 @@ atom::atom(std::string_view items) {
     }
 }
 
-bool atom::operator()(reader_ptr &reader, char &c) const {
-    const auto peek = reader->peek();
-    if (!peek || !match.test((unsigned int)*peek)) {
-        return false;
-    }
-
-    reader->next(), c = *peek;
-    return true;
-}
-
 bool atom::operator()(reader_ptr &reader, std::string &s) const {
     const auto peek = reader->peek();
     if (!peek || !match.test((unsigned int)*peek)) {
