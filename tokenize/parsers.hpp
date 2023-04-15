@@ -107,18 +107,16 @@ public:
     template <class T> bool operator()(reader_ptr &reader, T &out) const;
 };
 
-template <class T> class sum {
-    const parser_t<T> right;
-    const parser_t<T> left;
+template <parser R, parser L> class sum {
+    const R right;
+    const L left;
 
 public:
-    sum(const parser_t<T> &_right, const parser_t<T> &_left) : right(_right), left(_left) {}
-    bool operator()(reader_ptr &, T &) const;
+    sum(const R &_right, const L &_left) : right(_right), left(_left) {}
+    bool operator()(reader_ptr &, std::string &) const;
 };
 
-static inline auto operator+(const parser_t<std::string> &r, const parser_t<std::string> &l) {
-    return sum<std::string>(r, l);
-}
+template <parser R, parser L> static inline auto operator+(const R &r, const L &l) { return sum<R, L>(r, l); }
 
 template <class T> class sigma {
     const std::vector<parser_t<T>> parsers;

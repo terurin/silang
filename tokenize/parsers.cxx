@@ -45,7 +45,7 @@ template <parser T> bool repeat_range<T>::operator()(reader_ptr &reader, std::st
     return true;
 }
 
-template <class T> bool sum<T>::operator()(reader_ptr &reader, T &out) const {
+template <parser R, parser L> bool sum<R, L>::operator()(reader_ptr &reader, std::string &out) const {
     // store
     const auto keep = reader->get_position();
 
