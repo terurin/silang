@@ -18,7 +18,7 @@ namespace tokenize::parsers {
 using readers::reader_ptr, readers::position;
 
 template <class P, class T = std::string>
-concept parser = std::predicate<reader_ptr &, T &>;
+concept parser = std::predicate<P, reader_ptr &, T &> && std::copy_constructible<P>;
 template <class T = std::string> using parser_t = std::function<bool(reader_ptr &, T &)>;
 
 using match_t = std::bitset<256>;
@@ -75,7 +75,7 @@ public:
     bool operator()(reader_ptr &, std::string &) const;
 };
 
-template <class R, class L> class chain {
+template <parser R, parser L> class chain {
     const R right;
     const L left;
 
@@ -83,7 +83,7 @@ public:
     chain(const R &_right, const L &_left) : right(_right), left(_left) {}
     bool operator()(reader_ptr &, std::string &) const;
 };
-template <class R, class L> static inline auto operator*(const R &r, const L &l) { return chain(r, l); }
+template <parser R, parser L> static inline auto operator*(const R &r, const L &l) { return chain(r, l); }
 
 template <class T> class repeat_range {
     const T parser;
@@ -94,10 +94,10 @@ public:
     bool operator()(reader_ptr &, std::string &) const;
 };
 
-template <class T> static inline auto many0(const T &parser) { return repeat_range(parser, 0); }
-template <class T> static inline auto many1(const T &parser) { return repeat_range(parser, 1); }
-template <class T> static inline auto option(const T &parser) { return repeat_range(parser, 0, 1); }
-template <class T> static inline auto repeat(const T &parser, unsigned int n) { return repeat_range(parser, n, n); }
+template <parser T> static inline auto many0(const T &parser) { return repeat_range(parser, 0); }
+template <parser T> static inline auto many1(const T &parser) { return repeat_range(parser, 1); }
+template <parser T> static inline auto option(const T &parser) { return repeat_range(parser, 0, 1); }
+template <parser T> static inline auto repeat(const T &parser, unsigned int n) { return repeat_range(parser, n, n); }
 
 template <class P> class attempt {
     const P parser;
