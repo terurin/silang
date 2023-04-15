@@ -121,6 +121,15 @@ static inline auto operator+(const parser_t<std::string> &r, const parser_t<std:
     return sum<std::string>(r, l);
 }
 
+template <class T> class sigma {
+    const std::vector<parser_t<T>> parsers;
+
+public:
+    sigma(const std::vector<parser_t<T>> &_parsers) : parsers(_parsers) {}
+    sigma(std::initializer_list<parser_t<T>> _parsers) : parsers(_parsers) {}
+    bool operator()(reader_ptr &, T &) const;
+};
+
 class bracket {
     const parser_t<std::string> begin;
     const parser_t<std::string> body;

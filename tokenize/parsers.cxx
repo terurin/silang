@@ -61,18 +61,35 @@ template <class T> bool sum<T>::operator()(reader_ptr &reader, T &out) const {
     return left(reader, out);
 }
 
-template <class P>
-template <class T> bool attempt<P>::operator()(reader_ptr &reader, T &out) const {
-        // store
-        const T out_keep = out;
-        const position p_keep = reader->get_position();
-        // parse
+template <class P> template <class T> bool attempt<P>::operator()(reader_ptr &reader, T &out) const {
+    // store
+    const T out_keep = out;
+    const position p_keep = reader->get_position();
+    // parse
+    if (parser(reader, out)) {
+        return true;
+    }
+    // restore
+    out = out_keep;
+    reader->set_position(p_keep);
+    return false;
+}
+
+template <class T> bool sigma<T>::operator()(reader_ptr &reader, T &out) const {
+    // store
+    const position keep = reader->get_position();
+
+    for (const auto &parser : parsers) {
         if (parser(reader, out)) {
             return true;
         }
-        // restore
-        out = out_keep;
-        reader->set_position(p_keep);
-        return false;
+        // error check
+        if (keep != reader->get_position()) {
+            std::cerr << "overrun" << std::endl;
+            return false;
+        }
+    }
+
+    return false;
 }
 } // namespace tokenize::parsers

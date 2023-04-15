@@ -1,3 +1,4 @@
+#include "tokens.hpp"
 #include "tokenize.hpp"
 #include <map>
 namespace tokenize::tokens {
@@ -171,43 +172,19 @@ bool tokenize(reader_ptr &reader, token &t) {
     using namespace parsers;
     std::string s;
 
-    many0(spaces + comment)(reader, s);
+    static const auto gap = many0(spaces + comment);
+    gap(reader, s);
 
-    // operation
-    if (attempt(types)(reader, t)) {
-        return true;
-    }
-    if (attempt(operations)(reader, t)) {
-        return true;
-    }
+    static const sigma<token> parsers{attempt(types),
+                                      attempt(operations),
+                                      attempt(tokener(token_id::real, real)),
+                                      attempt(tokener(token_id::integer, integer)),
+                                      attempt(tokener(token_id::boolean, boolean)),
+                                      attempt(tokener(token_id::text, text)),
+                                      attempt(tokener(token_id::character, character)),
+                                      tokener(token_id::variable, variable)};
 
-    // [digit]
-    if (attempt(tokener(token_id::real, real))(reader, t)) {
-        return true;
-    }
-
-    if (attempt(tokener(token_id::boolean, boolean))(reader, t)) {
-        return true;
-    }
-
-    if (attempt(tokener(token_id::integer, integer))(reader, t)) {
-        return true;
-    }
-
-    // "
-    if (attempt(tokener(token_id::text, text))(reader, t)) {
-        return true;
-    }
-    // '
-    if (attempt(tokener(token_id::character, character))(reader, t)) {
-        return true;
-    }
-
-    // [a-zA-Z_]
-    if (tokener(token_id::variable, variable)(reader, t)) {
-        return true;
-    }
-    return false;
+    return parsers(reader, t);
 }
 
 bool tokenize_all(reader_ptr &reader, std::vector<token> &ts) {
