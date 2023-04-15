@@ -85,7 +85,7 @@ public:
 };
 template <parser R, parser L> static inline auto operator*(const R &r, const L &l) { return chain(r, l); }
 
-template <class T> class repeat_range {
+template <parser T> class repeat_range {
     const T parser;
     const unsigned int min, max;
 
@@ -154,8 +154,10 @@ const inline auto escaped_char = not_escape + one('\\') * any;
 const inline auto spaces = many1(space);
 
 // 特殊
-bool eof(reader_ptr &, std::string &);
-bool nop(reader_ptr &, std::string &);
+struct eof_t {
+    template <class T> bool operator()(reader_ptr &reader, T &) const { return !reader->peek(); }
+};
+static const inline eof_t eof;
 
 // integer
 const inline auto integer =

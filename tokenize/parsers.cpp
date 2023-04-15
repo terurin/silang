@@ -135,7 +135,4 @@ bool multi_list::operator()(reader_ptr &reader, std::string &s) const {
     return false;
 }
 
-bool eof(reader_ptr &reader, std::string &s) { return !reader->peek(); }
-bool nop(reader_ptr &reader, std::string &s) { return true; }
-
 } // namespace tokenize::parsers

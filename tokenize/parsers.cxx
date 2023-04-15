@@ -10,13 +10,13 @@ template <class R, class L> bool chain<R, L>::operator()(reader_ptr &reader, std
     return left(reader, s);
 }
 
-template <class T>
+template <parser T>
 repeat_range<T>::repeat_range(const T &_parser, unsigned int _min, unsigned int _max)
     : parser(_parser), min(_min), max(_max) {
     assert(min <= max);
 }
 
-template <class T> bool repeat_range<T>::operator()(reader_ptr &reader, std::string &s) const {
+template <parser T> bool repeat_range<T>::operator()(reader_ptr &reader, std::string &s) const {
     int count = 0;
 
     // min
